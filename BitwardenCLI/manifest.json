@@ -1,0 +1,69 @@
+{
+  "Actions": [
+    {
+      "Icon": "Images/Download",
+      "Name": "Get Item Information",
+      "States": [
+        {
+          "Image": "Images/Download",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Get Item Information",
+      "UUID": "com.thejoeiaut.bitwardenget",
+      "PropertyInspectorPath": "PropertyInspector/Get.html"
+    },
+    {
+      "Icon": "Images/unlock",
+      "Name": "Unlock",
+      "States": [
+        {
+          "Image": "Images/unlock",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Get Credential",
+      "UUID": "com.thejoeiaut.bitwardenunlock",
+      "PropertyInspectorPath": "PropertyInspector/Unlock.html"
+    },
+    {
+      "Icon": "Images/lock",
+      "Name": "Lock",
+      "States": [
+        {
+          "Image": "Images/lock",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Get Credential",
+      "UUID": "com.thejoeiaut.bitwardenlock",
+      "PropertyInspectorPath": "PropertyInspector/Lock.html"
+    }
+
+  ],
+  "Author": "TheJoeIaut",
+  "Name": "Bitwarden Tools",
+  "Description": "Interact with the Bitwarden CLI",
+  "Icon": "Images/icon",
+  "URL": "https://jsystems.eu",
+  "Version": "1.0",
+  "CodePath": "com.thejoeiaut.bitwarden",
+  "Category": "Bitwarden",
+  "CategoryIcon": "Images/icon",
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "4.9"
+  }
+}
