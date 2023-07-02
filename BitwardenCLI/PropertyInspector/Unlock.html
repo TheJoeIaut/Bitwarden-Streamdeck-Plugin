@@ -17,12 +17,16 @@
             <input class="sdpi-item-value sdProperty" type="password" value="" id="masterpassword" oninput="setSettings()">
         </div>
         <div class="sdpi-item" id="dvOutputEnvrionmentVariable">
-            <div class="sdpi-item-label">Env Variable</div>
+            <div class="sdpi-item-label">Environment Variable</div>
             <input class="sdpi-item-value sdProperty" value="" id="passwordenvvar" oninput="setSettings()">
         </div>
-        <div class="sdpi-item" id="dvOutputPwFile">
-            <div class="sdpi-item-label">Pw File</div>
-            <input class="sdpi-item-value sdProperty" value="" id="passwordfile" oninput="setSettings()">
+        <div class="sdpi-item" id="my_private_file_selector">
+            <div class="sdpi-item-label">Password File</div>
+            <div class="sdpi-item-group file" id="filepickergroup">
+                <input class="sdProperty sdFile" id="passwordfile" type="file" oninput="setSettings()">
+                <label class="sdpi-file-info " for="passwordfile" id="passwordfileFilename">No file...</label>
+                <label class="sdpi-file-label" for="passwordfile">Choose file...</label>
+            </div>
         </div>
     </div>
 </body>

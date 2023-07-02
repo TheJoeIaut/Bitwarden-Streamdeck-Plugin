@@ -1,11 +1,6 @@
 ﻿using BarRaider.SdTools;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace StreamDeck_Tools_Template1
+namespace BitwardenStreamdeckPlugin
 {
     internal class Program
     {

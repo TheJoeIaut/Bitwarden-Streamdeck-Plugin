@@ -1,10 +1,6 @@
-﻿using BarRaider.SdTools;
-using CliWrap;
-using CliWrap.Buffered;
-using StreamDeck_Tools_Template1;
-using System.Collections.Generic;
+﻿using CliWrap;
 
-namespace com.thejoeiaut.bitwarden
+namespace BitwardenStreamdeckPlugin
 {
     internal static class BwCliWrapper
     {

@@ -55,7 +55,7 @@
   "Version": "1.0",
   "CodePath": "com.thejoeiaut.bitwarden",
   "Category": "Bitwarden",
-  "CategoryIcon": "Images/icon",
+  "CategoryIcon": "Images/category",
   "OS": [
     {
       "Platform": "windows",
