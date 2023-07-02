@@ -48,8 +48,8 @@
 
   ],
   "Author": "TheJoeIaut",
-  "Name": "Bitwarden CLI",
-  "Description": "Interact with the Bitwarden CLI",
+  "Name": "Bitwarden",
+  "Description": "This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow the Lock/Unlock of the vault and the extraction of Username, Password or TOTP. The data is pasted at the current cursor position. This plugin requires the Bitwarden CLI to be already installed on your machine. All products that are compatible with the CLI (Bitwarden, Vaultwarden,...) are supported. Find the complete Bitwarden CLI documentation here: https://bitwarden.com/help/cli/",
   "Icon": "Images/icon",
   "URL": "https://github.com/TheJoeIaut/Bitwarden-Streamdeck-Plugin",
   "Version": "1.0",
