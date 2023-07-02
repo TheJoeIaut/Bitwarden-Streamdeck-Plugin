@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33513.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "com.thejoeiaut.bitwarden", "BitwardenCLI\com.thejoeiaut.bitwarden.csproj", "{4635D874-69C0-4010-BE46-77EF92EB1553}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitwardenStreamdeckPlugin", "BitwardenCLI\BitwardenStreamdeckPlugin.csproj", "{4635D874-69C0-4010-BE46-77EF92EB1553}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

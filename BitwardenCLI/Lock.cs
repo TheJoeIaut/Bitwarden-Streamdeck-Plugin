@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using BarRaider.SdTools;
 
-namespace com.thejoeiaut.bitwarden
+namespace BitwardenStreamdeckPlugin
 {
     [PluginActionId("com.thejoeiaut.bitwardenlock")]
     public class Lock : PluginBase
@@ -24,6 +24,7 @@ namespace com.thejoeiaut.bitwarden
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, "Key Pressed - Lock");
             LockVault().GetAwaiter().GetResult();
+            Connection.ShowOk();
         }
         
         public override void KeyReleased(KeyPayload payload)

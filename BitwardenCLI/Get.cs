@@ -1,17 +1,15 @@
-﻿using BarRaider.SdTools;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using com.thejoeiaut.bitwarden.Models;
-using CliWrap;
+using BarRaider.SdTools;
+using BitwardenStreamdeckPlugin.Models;
 using CliWrap.Buffered;
-using com.thejoeiaut.bitwarden;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using WindowsInput;
 using WindowsInput.Native;
 
-namespace StreamDeck_Tools_Template1
+namespace BitwardenStreamdeckPlugin
 {
     [PluginActionId("com.thejoeiaut.bitwardenget")]
     public class Get : PluginBase
@@ -41,7 +39,7 @@ namespace StreamDeck_Tools_Template1
 
         #region Private Members
 
-        private PluginSettings settings;
+        private readonly PluginSettings settings;
 
         #endregion
 
@@ -99,25 +97,20 @@ namespace StreamDeck_Tools_Template1
             }
             catch (Exception ex)
             {
+                Connection.ShowAlert();
                 Logger.Instance.LogMessage(TracingLevel.ERROR, ex.Message);
             }
 
-            
+            Connection.ShowOk();
         }
 
         private async Task<Item> GetItem()
         {
-            Logger.Instance.LogMessage(TracingLevel.INFO, settings.ItemName);
-
-            foreach (var variable in BwCliWrapper.GetCli().EnvironmentVariables)
-            {
-                Logger.Instance.LogMessage(TracingLevel.INFO, $"{variable.Key}-{variable.Value}");
-            }
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Getting {settings.SelectedItemInformation} of item {settings.ItemName}");
 
             var cmd = BwCliWrapper.GetCli().WithArguments(new[] {"get", "item", settings.ItemName});
             var result = await cmd.ExecuteBufferedAsync();
-            Logger.Instance.LogMessage(TracingLevel.INFO, result.StandardOutput);
-
+            
             var x = JObject.Parse(result.StandardOutput);
             
             return JsonConvert.DeserializeObject<Item>(x.SelectToken("login")?.ToString() ?? string.Empty);
@@ -156,9 +149,9 @@ namespace StreamDeck_Tools_Template1
 
         #region Private Methods
 
-        private Task SaveSettings()
+        private void SaveSettings()
         {
-            return Connection.SetSettingsAsync(JObject.FromObject(settings));
+            Connection.SetSettingsAsync(JObject.FromObject(settings));
         }
 
         #endregion
