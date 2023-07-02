@@ -48,10 +48,10 @@
 
   ],
   "Author": "TheJoeIaut",
-  "Name": "Bitwarden Tools",
+  "Name": "Bitwarden CLI",
   "Description": "Interact with the Bitwarden CLI",
   "Icon": "Images/icon",
-  "URL": "https://jsystems.eu",
+  "URL": "https://github.com/TheJoeIaut/Bitwarden-Streamdeck-Plugin",
   "Version": "1.0",
   "CodePath": "com.thejoeiaut.bitwarden",
   "Category": "Bitwarden",
