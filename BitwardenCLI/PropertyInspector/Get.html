@@ -19,9 +19,11 @@
         </div>
         <div class="sdpi-item" id="dvSelectedItem">
             <div class="sdpi-item-label">Selected Item</div>
-            <select class="sdpi-item-value select sdProperty sdList" id="items" oninput="setSettings()" sdListTextProperty="name" sdListValueProperty="id" sdValueField="itemname"></select>
+            <input class="sdpi-item-value sdProperty" id="itemname" list="itemCandidates"
+                   placeholder="Type to search your vault..." oninput="setSettings()">
+            <datalist id="itemCandidates"></datalist>
         </div>
-        <div class="sdpi-item" id="dvSelectedItem">
+        <div class="sdpi-item" id="dvSelectedInfo">
             <div class="sdpi-item-label">Selected Info</div>
             <select class="sdProperty" id="iteminformation" oninput="setSettings()">
                 <option value="username">Username</option>

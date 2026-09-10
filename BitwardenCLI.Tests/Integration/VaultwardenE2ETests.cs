@@ -1,4 +1,6 @@
+using BarRaider.SdTools;
 using BitwardenStreamdeckPlugin.Models;
+using NSubstitute;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -80,6 +82,33 @@ public class VaultwardenE2ETests(VaultwardenFixture fixture)
 
         Assert.Contains(items,
             i => i.ItemName == $"{VaultwardenFixture.ItemName} ({VaultwardenFixture.ItemUsername})");
+    }
+
+    [SkippableFact]
+    public async Task A_label_picked_from_the_real_list_fetches_the_right_entry()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        // The full round trip: list the vault, take the label the picker would show, and
+        // check the action resolves it back to the entry it came from.
+        List<ItemListDto> items = Get.ParseItemList(await Cli().Run("list", "items"));
+        string label = items.Single(i => i.ItemName.StartsWith(VaultwardenFixture.ItemName)).ItemName;
+
+        Assert.Equal($"{VaultwardenFixture.ItemName} ({VaultwardenFixture.ItemUsername})", label);
+
+        var payload = TestPayloads.Initial(new
+        {
+            iteminformation = "username",
+            itemname = label,
+            items = JsonConvert.DeserializeObject(JsonConvert.SerializeObject(items))
+        });
+
+        var action = new Get(Substitute.For<ISDConnection>(), payload, Cli(), Substitute.For<IKeyboardTyper>());
+
+        Item fetched = await action.GetItem();
+
+        Assert.Equal(VaultwardenFixture.ItemUsername, fetched.UserName);
+        Assert.Equal(VaultwardenFixture.ItemPassword, fetched.Password);
     }
 
     [SkippableFact]

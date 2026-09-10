@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BarRaider.SdTools;
 using BitwardenStreamdeckPlugin.Models;
@@ -120,9 +121,41 @@ namespace BitwardenStreamdeckPlugin
             Logger.Instance.LogMessage(TracingLevel.INFO,
                 $"Getting {settings.SelectedItemInformation} of item {settings.ItemName}");
 
-            string output = await cli.Run("get", "item", settings.ItemName);
+            string output = await cli.Run("get", "item", ResolveItemQuery());
 
             return ParseItem(output);
+        }
+
+        /// <summary>
+        /// What to hand the CLI for the configured selection.
+        ///
+        /// The picker stores whatever is in its search box. When that matches one of the
+        /// loaded entries, its id is used, which is exact and immune to duplicate names -
+        /// and necessary, because the label carries the username in parentheses and the CLI
+        /// would never find that. Anything else is passed through as a search term, which
+        /// also covers a settings file written before the picker changed, where the stored
+        /// value is already an id.
+        /// </summary>
+        internal string ResolveItemQuery()
+        {
+            string selection = settings.ItemName;
+
+            if (string.IsNullOrWhiteSpace(selection))
+            {
+                throw new InvalidOperationException("No vault item selected");
+            }
+
+            selection = selection.Trim();
+
+            ItemListDto match = settings.Items?.FirstOrDefault(
+                item => string.Equals(item.ItemName, selection, StringComparison.Ordinal));
+
+            if (match != null && match.ItemId != Guid.Empty)
+            {
+                return match.ItemId.ToString();
+            }
+
+            return selection;
         }
 
         /// <summary>
@@ -152,7 +185,7 @@ namespace BitwardenStreamdeckPlugin
         /// </summary>
         internal async Task<string> GetTotpCode()
         {
-            string code = (await cli.Run("get", "totp", settings.ItemName)).Trim();
+            string code = (await cli.Run("get", "totp", ResolveItemQuery())).Trim();
 
             if (string.IsNullOrEmpty(code))
             {

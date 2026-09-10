@@ -172,6 +172,122 @@ public class GetActionTests
         await action.LoadItems();
     }
 
+    // --- resolving the picker's search box to something the CLI understands ---
+
+    private static Get WithSelection(string selection, IBwCli cli, params (string label, string id)[] loaded)
+    {
+        var payload = TestPayloads.Initial(new
+        {
+            iteminformation = "password",
+            itemname = selection,
+            items = loaded.Select(entry => new { name = entry.label, id = entry.id }).ToArray()
+        });
+
+        return new Get(Substitute.For<ISDConnection>(), payload, cli, Substitute.For<IKeyboardTyper>());
+    }
+
+    [Fact]
+    public async Task A_label_from_the_picker_resolves_to_the_entry_id()
+    {
+        // The label carries the username in parentheses, which the CLI would never match.
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(Fixture("get-item.json"));
+
+        Get action = WithSelection("GitHub (octocat)", cli,
+            ("GitHub (octocat)", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"));
+
+        await action.GetItem();
+
+        await cli.Received(1).Run("get", "item", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
+    }
+
+    [Fact]
+    public async Task Identical_names_stay_distinguishable_because_ids_are_used()
+    {
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(Fixture("get-item.json"));
+
+        Get action = WithSelection("acme.com (bob)", cli,
+            ("acme.com (alice)", "11111111-1111-4111-8111-111111111111"),
+            ("acme.com (bob)", "22222222-2222-4222-8222-222222222222"));
+
+        await action.GetItem();
+
+        await cli.Received(1).Run("get", "item", "22222222-2222-4222-8222-222222222222");
+    }
+
+    [Fact]
+    public async Task Free_text_that_matches_nothing_is_handed_to_the_cli_as_a_search_term()
+    {
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(Fixture("get-item.json"));
+
+        Get action = WithSelection("github", cli, ("GitHub (octocat)", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"));
+
+        await action.GetItem();
+
+        await cli.Received(1).Run("get", "item", "github");
+    }
+
+    [Fact]
+    public async Task A_key_configured_before_the_picker_changed_still_works()
+    {
+        // Those settings hold a bare id, which matches no label and is passed straight
+        // through - exactly what the CLI wants anyway.
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(Fixture("get-item.json"));
+
+        Get action = WithSelection("8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f", cli);
+
+        await action.GetItem();
+
+        await cli.Received(1).Run("get", "item", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
+    }
+
+    [Fact]
+    public async Task Surrounding_whitespace_from_the_search_box_is_ignored()
+    {
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(Fixture("get-item.json"));
+
+        Get action = WithSelection("  GitHub (octocat)  ", cli,
+            ("GitHub (octocat)", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"));
+
+        await action.GetItem();
+
+        await cli.Received(1).Run("get", "item", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
+    }
+
+    [Fact]
+    public async Task An_empty_search_box_alerts_instead_of_querying_the_whole_vault()
+    {
+        ISDConnection connection = Substitute.For<ISDConnection>();
+        IBwCli cli = Substitute.For<IBwCli>();
+
+        var action = new Get(connection,
+            TestPayloads.Initial(new { iteminformation = "password", itemname = "   " }),
+            cli, Substitute.For<IKeyboardTyper>());
+
+        await action.TypeSelectedInformation();
+
+        await cli.DidNotReceive().Run(Arg.Any<string[]>());
+        await connection.Received(1).ShowAlert();
+    }
+
+    [Fact]
+    public async Task A_totp_request_resolves_the_selection_the_same_way()
+    {
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns("123456");
+
+        Get action = WithSelection("GitHub (octocat)", cli,
+            ("GitHub (octocat)", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"));
+
+        await action.GetTotpCode();
+
+        await cli.Received(1).Run("get", "totp", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
+    }
+
     [Fact]
     public void An_action_dropped_with_no_settings_persists_its_defaults()
     {
