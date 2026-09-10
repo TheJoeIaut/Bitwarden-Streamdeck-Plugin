@@ -6,7 +6,6 @@ using BitwardenStreamdeckPlugin.Models;
 using CliWrap.Buffered;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using WindowsInput;
 
 namespace BitwardenStreamdeckPlugin
 {
@@ -68,28 +67,23 @@ namespace BitwardenStreamdeckPlugin
             {
                 var item = GetItem().GetAwaiter().GetResult();
 
-                Task.Run(() =>
+                Task.Run(async () =>
                 {
-
-                    var iis = new InputSimulator();
-
-                    Logger.Instance.LogMessage(TracingLevel.INFO, $"PW {item.Password}");
-
                     switch (settings.SelectedItemInformation)
                     {
                         case "password":
-                            iis.Keyboard.TextEntry(item.Password);
+                            await KeyboardTyper.TypeText(item.Password);
                             break;
                         case "username":
-                            iis.Keyboard.TextEntry(item.UserName);
+                            await KeyboardTyper.TypeText(item.UserName);
                             break;
                         case "totp":
-                            iis.Keyboard.TextEntry(item.Totp);
+                            await KeyboardTyper.TypeText(item.Totp);
                             break;
                         case "usernamepassword":
-                            iis.Keyboard.TextEntry(item.UserName);
-                            iis.Keyboard.KeyDown(VirtualKeyCode.TAB);
-                            iis.Keyboard.TextEntry(item.Password);
+                            await KeyboardTyper.TypeText(item.UserName);
+                            await KeyboardTyper.PressTab();
+                            await KeyboardTyper.TypeText(item.Password);
                             break;
                     }
                 });

@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <RootNamespace>BitwardenStreamdeckPlugin</RootNamespace>
     <AssemblyName>com.thejoeiaut.bitwarden</AssemblyName>
@@ -32,6 +32,8 @@
     <PackageReference Include="H.InputSimulator" Version="1.5.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="StreamDeck-Tools" Version="7.0.0" />
+    <!-- SkiaSharp ships Windows and macOS natives by default; Linux needs this explicitly. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -50,14 +52,14 @@
   </ItemGroup>
 
   <!-- StreamDeck-Tools 7 pulls in SkiaSharp, whose native assets add ~240 MB of debug
-       symbols (one libSkiaSharp.pdb per RID) plus a macOS dylib. This plugin is
-       Windows-only, so keep them out of the .sdPlugin folder we ship. Build and publish
-       use separate item lists, so both need filtering. -->
+       symbols (one libSkiaSharp.pdb per RID). Those are never needed at runtime on any
+       platform, so keep them out of the .sdPlugin folder we ship. The actual native
+       libraries are kept for every RID. Build and publish use separate item lists. -->
   <Target Name="RemoveUnusedSkiaNativeAssetsOnBuild" AfterTargets="ResolveAssemblyReferences">
     <ItemGroup>
       <ReferenceCopyLocalPaths
         Remove="@(ReferenceCopyLocalPaths)"
-        Condition="'%(Filename)' == 'libSkiaSharp' And ('%(Extension)' == '.pdb' Or '%(Extension)' == '.dylib' Or '%(Extension)' == '.so')" />
+        Condition="'%(Filename)' == 'libSkiaSharp' And '%(Extension)' == '.pdb'" />
     </ItemGroup>
   </Target>
 
@@ -65,7 +67,7 @@
     <ItemGroup>
       <ResolvedFileToPublish
         Remove="@(ResolvedFileToPublish)"
-        Condition="'%(Filename)' == 'libSkiaSharp' And ('%(Extension)' == '.pdb' Or '%(Extension)' == '.dylib' Or '%(Extension)' == '.so')" />
+        Condition="'%(Filename)' == 'libSkiaSharp' And '%(Extension)' == '.pdb'" />
     </ItemGroup>
   </Target>
 
