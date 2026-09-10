@@ -126,6 +126,23 @@ namespace BitwardenStreamdeckPlugin
         }
 
         /// <summary>
+        /// Turns 'bw list items' output into the picker's entries, labelling each one with
+        /// its username so several logins for the same site can be told apart.
+        /// </summary>
+        internal static List<ItemListDto> ParseItemList(string commandOutput)
+        {
+            List<ItemListDto> items =
+                JsonConvert.DeserializeObject<List<ItemListDto>>(commandOutput) ?? new List<ItemListDto>();
+
+            foreach (ItemListDto item in items)
+            {
+                item.ApplyDisplayName();
+            }
+
+            return items;
+        }
+
+        /// <summary>
         /// The current one time code for the item.
         ///
         /// This deliberately does not come from 'bw get item': that returns the item's
@@ -184,7 +201,7 @@ namespace BitwardenStreamdeckPlugin
             try
             {
                 string output = await cli.Run("list", "items");
-                settings.Items = JsonConvert.DeserializeObject<List<ItemListDto>>(output);
+                settings.Items = ParseItemList(output);
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"{settings.Items.Count} Items Loaded");
             }
             catch (Exception ex)

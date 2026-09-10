@@ -87,4 +87,57 @@ public class ItemParsingTests
 
         Assert.Contains(items, i => i.ItemName == "Secure Note");
     }
+
+    [Fact]
+    public void The_picker_labels_each_entry_with_its_username()
+    {
+        // Several logins for the same site are indistinguishable by name alone.
+        List<ItemListDto> items = Get.ParseItemList(Fixture("list-items.json"));
+
+        Assert.Equal("GitHub (octocat)", items[0].ItemName);
+        Assert.Equal("Example Mail (user@example.com)", items[1].ItemName);
+    }
+
+    [Fact]
+    public void An_entry_without_a_username_keeps_its_plain_name()
+    {
+        List<ItemListDto> items = Get.ParseItemList(Fixture("list-items.json"));
+
+        Assert.Equal("Secure Note", items[2].ItemName);
+    }
+
+    [Fact]
+    public void An_entry_with_an_empty_username_gets_no_empty_parentheses()
+    {
+        string json = """
+        [{ "object": "item", "id": "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f",
+           "name": "No User", "type": 1, "login": { "username": "", "password": "p" } }]
+        """;
+
+        Assert.Equal("No User", Get.ParseItemList(json)[0].ItemName);
+    }
+
+    [Fact]
+    public void The_picker_keeps_the_item_ids_intact()
+    {
+        // The id is what gets stored as the selection, so relabelling must not disturb it.
+        List<ItemListDto> items = Get.ParseItemList(Fixture("list-items.json"));
+
+        Assert.Equal(Guid.Parse("8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"), items[0].ItemId);
+    }
+
+    [Fact]
+    public void No_credentials_survive_into_the_saved_settings()
+    {
+        // 'bw list items' hands back whole entries, passwords and TOTP seeds included.
+        // That list is written into the Stream Deck's settings, so it must carry none.
+        List<ItemListDto> items = Get.ParseItemList(Fixture("list-items.json"));
+
+        string persisted = JsonConvert.SerializeObject(items);
+
+        Assert.DoesNotContain("correct horse battery staple", persisted);
+        Assert.DoesNotContain("hunter2", persisted);
+        Assert.DoesNotContain("JBSWY3DPEHPK3PXP", persisted);
+        Assert.DoesNotContain("password", persisted, StringComparison.OrdinalIgnoreCase);
+    }
 }

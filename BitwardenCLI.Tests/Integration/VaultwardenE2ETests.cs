@@ -71,6 +71,34 @@ public class VaultwardenE2ETests(VaultwardenFixture fixture)
     }
 
     [SkippableFact]
+    public async Task The_picker_labels_real_entries_with_their_usernames()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        string output = await Cli().Run("list", "items");
+        List<ItemListDto> items = Get.ParseItemList(output);
+
+        Assert.Contains(items,
+            i => i.ItemName == $"{VaultwardenFixture.ItemName} ({VaultwardenFixture.ItemUsername})");
+    }
+
+    [SkippableFact]
+    public async Task The_stored_picker_list_carries_no_credentials()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        // Real CLI output really does contain the passwords and seeds; this is the check
+        // that they never reach the Stream Deck's saved settings.
+        string output = await Cli().Run("list", "items");
+        Assert.Contains(VaultwardenFixture.ItemPassword, output);
+
+        string persisted = JsonConvert.SerializeObject(Get.ParseItemList(output));
+
+        Assert.DoesNotContain(VaultwardenFixture.ItemPassword, persisted);
+        Assert.DoesNotContain(VaultwardenFixture.TotpSecret, persisted);
+    }
+
+    [SkippableFact]
     public async Task A_totp_request_returns_a_six_digit_code_not_the_stored_secret()
     {
         Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
