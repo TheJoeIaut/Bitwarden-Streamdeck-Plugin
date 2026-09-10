@@ -30,6 +30,7 @@ namespace BitwardenStreamdeckPlugin
                 return new PluginSettings
                 {
                     GeneratorType = "password",
+                    Output = "type",
                     Length = 14,
                     Uppercase = true,
                     Lowercase = true,
@@ -48,6 +49,21 @@ namespace BitwardenStreamdeckPlugin
             /// <summary>"password" or "passphrase".</summary>
             [JsonProperty(PropertyName = "generatortype")]
             public string GeneratorType { get; set; }
+
+            /// <summary>
+            /// Where the generated value goes: "type" at the cursor, "clipboard" only, or
+            /// "both". Anything unrecognised - including the empty value a key configured
+            /// before this option carries - types, which is what the action always did.
+            /// </summary>
+            [JsonProperty(PropertyName = "output")]
+            public string Output { get; set; }
+
+            internal bool TypesResult =>
+                !string.Equals(Output, "clipboard", StringComparison.OrdinalIgnoreCase);
+
+            internal bool CopiesResult =>
+                string.Equals(Output, "clipboard", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Output, "both", StringComparison.OrdinalIgnoreCase);
 
             [JsonProperty(PropertyName = "length")]
             public int Length { get; set; }
@@ -94,19 +110,22 @@ namespace BitwardenStreamdeckPlugin
         private readonly PluginSettings settings;
         private readonly IBwCli cli;
         private readonly IKeyboardTyper typer;
+        private readonly IClipboardWriter clipboard;
 
         #endregion
 
         public Generate(ISDConnection connection, InitialPayload payload)
-            : this(connection, payload, BwCli.Shared, KeyboardTyper.Shared)
+            : this(connection, payload, BwCli.Shared, KeyboardTyper.Shared, ClipboardWriter.Shared)
         {
         }
 
-        internal Generate(ISDConnection connection, InitialPayload payload, IBwCli cli, IKeyboardTyper typer)
+        internal Generate(ISDConnection connection, InitialPayload payload, IBwCli cli, IKeyboardTyper typer,
+            IClipboardWriter clipboard)
             : base(connection, payload)
         {
             this.cli = cli;
             this.typer = typer;
+            this.clipboard = clipboard;
 
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -137,7 +156,20 @@ namespace BitwardenStreamdeckPlugin
             try
             {
                 string secret = await GenerateSecret();
-                await typer.TypeText(secret);
+
+                // Copied before it is typed: typing is the part that can fail on a missing
+                // helper, and having the value on the clipboard is what makes that
+                // recoverable rather than a lost password.
+                if (settings.CopiesResult)
+                {
+                    await clipboard.SetText(secret);
+                }
+
+                if (settings.TypesResult)
+                {
+                    await typer.TypeText(secret);
+                }
+
                 await Connection.ShowOk();
             }
             catch (Exception ex)

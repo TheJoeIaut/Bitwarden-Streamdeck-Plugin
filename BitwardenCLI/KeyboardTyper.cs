@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using BarRaider.SdTools;
-using CliWrap;
 using WindowsInput;
 
 namespace BitwardenStreamdeckPlugin
@@ -29,7 +28,7 @@ namespace BitwardenStreamdeckPlugin
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                await RunTool(LinuxTypingTool(), new[] { "type", "--file", "-" }, text);
+                await Shell.Run(LinuxTypingTool(), new[] { "type", "--file", "-" }, text);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
@@ -49,7 +48,7 @@ namespace BitwardenStreamdeckPlugin
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                await RunTool(LinuxTypingTool(), new[] { "key", "Tab" });
+                await Shell.Run(LinuxTypingTool(), new[] { "key", "Tab" });
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
@@ -90,29 +89,8 @@ namespace BitwardenStreamdeckPlugin
 
         private static async Task RunAppleScript(string script)
         {
-            await RunTool("osascript", new[] { "-" }, script);
+            await Shell.Run("osascript", new[] { "-" }, script);
         }
 
-        /// <summary>
-        /// Secrets are handed over on stdin rather than as arguments, so they never appear
-        /// in the process list where any local user could read them.
-        /// </summary>
-        private static async Task RunTool(string tool, string[] arguments, string standardInput = null)
-        {
-            Command command = Cli.Wrap(tool).WithArguments(arguments).WithValidation(CommandResultValidation.None);
-
-            if (standardInput != null)
-            {
-                command = command.WithStandardInputPipe(PipeSource.FromString(standardInput));
-            }
-
-            CommandResult result = await command.ExecuteAsync();
-
-            if (result.ExitCode != 0)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{tool} exited with code {result.ExitCode}");
-                throw new InvalidOperationException($"'{tool}' failed. Is it installed and on PATH?");
-            }
-        }
     }
 }

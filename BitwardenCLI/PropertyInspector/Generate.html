@@ -21,6 +21,15 @@
             </select>
         </div>
 
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Output</div>
+            <select class="sdProperty" id="output" oninput="setSettings()">
+                <option value="type">Type at cursor</option>
+                <option value="clipboard">Copy to clipboard</option>
+                <option value="both">Type and copy</option>
+            </select>
+        </div>
+
         <!-- Password options -->
         <div class="sdpi-item passwordOption">
             <div class="sdpi-item-label">Length</div>
@@ -97,7 +106,8 @@
 
         <div class="sdpi-item">
             <details class="message">
-                <summary>The generated value is typed at the cursor. This action does not need the vault to be unlocked.</summary>
+                <summary>Anything put on the clipboard stays there until something else
+                    replaces it. This action does not need the vault to be unlocked.</summary>
             </details>
         </div>
 
