@@ -1,0 +1,25 @@
+{
+  "name": "Bitwarden Stream Deck Plugin",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    // Lets the Testcontainers based Vaultwarden tests start containers from inside here.
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "containerEnv": {
+    // The headless X server started by postStartCommand.
+    "DISPLAY": ":99",
+    // Opts the Vaultwarden end to end tests in. Safe here: the container has its own
+    // throwaway bw profile, not a developer's real vault.
+    "BW_E2E": "1"
+  },
+  "postStartCommand": "start-display",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit"
+      ]
+    }
+  }
+}

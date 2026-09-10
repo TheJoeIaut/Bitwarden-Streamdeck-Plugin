@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
@@ -13,9 +12,11 @@ namespace BitwardenStreamdeckPlugin
     /// Types text into whatever window currently has focus.
     /// Each platform needs a different mechanism, so the implementation is chosen at runtime.
     /// </summary>
-    internal static class KeyboardTyper
+    internal sealed class KeyboardTyper : IKeyboardTyper
     {
-        internal static async Task TypeText(string text)
+        internal static IKeyboardTyper Shared { get; set; } = new KeyboardTyper();
+
+        public async Task TypeText(string text)
         {
             if (string.IsNullOrEmpty(text))
             {
@@ -28,11 +29,11 @@ namespace BitwardenStreamdeckPlugin
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                await TypeTextLinux(text);
+                await RunTool(LinuxTypingTool(), new[] { "type", "--file", "-" }, text);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                await TypeTextMacOs(text);
+                await RunAppleScript($"tell application \"System Events\" to keystroke {EscapeAppleScript(text)}");
             }
             else
             {
@@ -40,7 +41,7 @@ namespace BitwardenStreamdeckPlugin
             }
         }
 
-        internal static async Task PressTab()
+        public async Task PressTab()
         {
             if (OperatingSystem.IsWindowsVersionAtLeast(5))
             {
@@ -69,26 +70,22 @@ namespace BitwardenStreamdeckPlugin
         }
 
         /// <summary>
-        /// xdotool covers X11, ydotool covers Wayland. Both read the text from stdin so the
-        /// secret never lands in the process command line, where any local user could read it.
+        /// xdotool covers X11, ydotool covers Wayland. WAYLAND_DISPLAY is set under Wayland
+        /// sessions, where XTEST (and therefore xdotool) is unavailable.
         /// </summary>
-        private static async Task TypeTextLinux(string text)
+        internal static string LinuxTypingTool()
         {
-            await RunTool(LinuxTypingTool(), new[] { "type", "--file", "-" }, text);
-        }
-
-        private static async Task TypeTextMacOs(string text)
-        {
-            // Passed over stdin rather than as an argument so the secret stays off the command line.
-            await RunAppleScript($"tell application \"System Events\" to keystroke {EscapeAppleScript(text)}");
-        }
-
-        private static string LinuxTypingTool()
-        {
-            // WAYLAND_DISPLAY is set under Wayland sessions, where XTEST (xdotool) is unavailable.
             return string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"))
                 ? "xdotool"
                 : "ydotool";
+        }
+
+        /// <summary>
+        /// Quotes a value for embedding in an AppleScript string literal.
+        /// </summary>
+        internal static string EscapeAppleScript(string value)
+        {
+            return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
         }
 
         private static async Task RunAppleScript(string script)
@@ -96,11 +93,10 @@ namespace BitwardenStreamdeckPlugin
             await RunTool("osascript", new[] { "-" }, script);
         }
 
-        private static string EscapeAppleScript(string value)
-        {
-            return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-        }
-
+        /// <summary>
+        /// Secrets are handed over on stdin rather than as arguments, so they never appear
+        /// in the process list where any local user could read them.
+        /// </summary>
         private static async Task RunTool(string tool, string[] arguments, string standardInput = null)
         {
             Command command = Cli.Wrap(tool).WithArguments(arguments).WithValidation(CommandResultValidation.None);

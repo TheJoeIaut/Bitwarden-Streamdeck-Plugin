@@ -28,6 +28,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="BitwardenCLI.Tests" />
+    <!-- Lets NSubstitute's proxy generator mock the internal seams (IBwCli, IKeyboardTyper). -->
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CliWrap" Version="3.10.5" />
     <PackageReference Include="H.InputSimulator" Version="1.5.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />

@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Threading.Tasks;
 using BarRaider.SdTools;
-using CliWrap;
-using CliWrap.Buffered;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -12,7 +9,7 @@ namespace BitwardenStreamdeckPlugin
     [PluginActionId("com.thejoeiaut.bitwardenunlock")]
     public class Unlock : KeypadBase
     {
-        private class PluginSettings
+        internal class PluginSettings
         {
             public static PluginSettings CreateDefaultSettings()
             {
@@ -38,12 +35,20 @@ namespace BitwardenStreamdeckPlugin
 
         #region Private Members
 
-        private PluginSettings settings;
+        private readonly PluginSettings settings;
+        private readonly IBwCli cli;
 
         #endregion
 
-        public Unlock(ISDConnection connection, InitialPayload payload) : base(connection, payload)
+        public Unlock(ISDConnection connection, InitialPayload payload)
+            : this(connection, payload, BwCli.Shared)
         {
+        }
+
+        internal Unlock(ISDConnection connection, InitialPayload payload, IBwCli cli) : base(connection, payload)
+        {
+            this.cli = cli;
+
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
                 this.settings = PluginSettings.CreateDefaultSettings();
@@ -63,21 +68,9 @@ namespace BitwardenStreamdeckPlugin
         public override void KeyPressed(KeyPayload payload)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, "Key Pressed - Unlock");
-            try
-            {
-                UnlockVault(settings.MasterPassword, settings.PasswordEnvVariable, settings.PasswordFile).GetAwaiter()
-                    .GetResult();
-                Connection.ShowOk();
-            }
-            catch (Exception e)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, e.Message);
-                Connection.ShowAlert();
-            }
-
-            Connection.ShowOk();
+            UnlockVault().GetAwaiter().GetResult();
         }
-        
+
         public override void KeyReleased(KeyPayload payload)
         {
         }
@@ -92,51 +85,60 @@ namespace BitwardenStreamdeckPlugin
             SaveSettings();
         }
 
-        private static async Task UnlockVault(string masterPassword, string envVariable, string fileName)
+        /// <summary>
+        /// Builds the 'bw unlock' arguments for the configured credential source, or null
+        /// when nothing is configured.
+        /// </summary>
+        internal static string[] BuildUnlockArguments(PluginSettings settings)
         {
-           
-                Command cmd;
+            if (!string.IsNullOrEmpty(settings.MasterPassword))
+            {
+                return new[] { "unlock", settings.MasterPassword, "--raw" };
+            }
 
-                if (!string.IsNullOrEmpty(masterPassword))
+            if (!string.IsNullOrEmpty(settings.PasswordEnvVariable))
+            {
+                return new[] { "unlock", "--passwordenv", settings.PasswordEnvVariable, "--raw" };
+            }
+
+            if (!string.IsNullOrEmpty(settings.PasswordFile))
+            {
+                return new[] { "unlock", "--passwordfile", settings.PasswordFile, "--raw" };
+            }
+
+            return null;
+        }
+
+        internal async Task UnlockVault()
+        {
+            string[] arguments = BuildUnlockArguments(settings);
+
+            if (arguments == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, "No unlock method configured - doing nothing");
+                await Connection.ShowAlert();
+                return;
+            }
+
+            try
+            {
+                string sessionKey = (await cli.Run(arguments)).Trim();
+
+                if (string.IsNullOrEmpty(sessionKey))
                 {
-                    Logger.Instance.LogMessage(TracingLevel.INFO, "Unlock using Master Password");
-                    cmd = BwCliWrapper.GetCli().WithArguments(new[] {"unlock", masterPassword, "--raw"});
+                    throw new InvalidOperationException("Bitwarden CLI returned an empty session key");
                 }
-                else if (!string.IsNullOrEmpty(envVariable))
-                {
-                    Logger.Instance.LogMessage(TracingLevel.INFO, "Unlock using Environment Variable");
-                    cmd = BwCliWrapper.GetCli().WithArguments(new[] {"unlock", "--passwordenv", envVariable, "--raw"});
-                }
-                else if (!string.IsNullOrEmpty(fileName))
-                {
-                    Logger.Instance.LogMessage(TracingLevel.INFO, "Unlock using Password File");
-                    cmd = BwCliWrapper.GetCli().WithArguments(new[] {"unlock", "--passwordfile", fileName, "--raw"});
-                }
-                else
-                {
-                    Logger.Instance.LogMessage(TracingLevel.INFO, "No Settings Found - Doing nothing");
-                    return;
-                }
 
-                var result = await cmd.ExecuteBufferedAsync();
+                cli.SetSessionKey(sessionKey);
+                Logger.Instance.LogMessage(TracingLevel.INFO, "Session key received and stored");
 
-                Logger.Instance.LogMessage(TracingLevel.INFO, "Session Key received");
-
-                BwCliWrapper.SetCli(BwCliWrapper.GetCli().WithEnvironmentVariables(new Dictionary<string, string>
-                {
-                    ["BW_SESSION"] = result.StandardOutput
-                }));
-
-                foreach (var variable in BwCliWrapper.GetCli().EnvironmentVariables)
-                {
-                    Logger.Instance.LogMessage(TracingLevel.INFO, $"{variable.Key}-{variable.Value}");
-                }
-
-                var response = await BwCliWrapper.GetCli().WithArguments(new[] {"status"}).ExecuteBufferedAsync();
-
-                Logger.Instance.LogMessage(TracingLevel.INFO, response.StandardOutput);
-                Logger.Instance.LogMessage(TracingLevel.INFO, "Session Key stored in Environment Variable");
-
+                await Connection.ShowOk();
+            }
+            catch (Exception e)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, e.Message);
+                await Connection.ShowAlert();
+            }
         }
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload)

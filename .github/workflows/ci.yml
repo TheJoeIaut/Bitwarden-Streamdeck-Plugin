@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build
+        run: dotnet build BitwardenCLI/BitwardenStreamdeckPlugin.csproj -c Release
+
+      - name: Publish self-contained
+        run: >
+          dotnet publish BitwardenCLI/BitwardenStreamdeckPlugin.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+          -o out/com.thejoeiaut.bitwarden.sdPlugin
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: com.thejoeiaut.bitwarden-${{ matrix.rid }}
+          path: out/com.thejoeiaut.bitwarden.sdPlugin
+
+  unit-tests:
+    name: Unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Test
+        run: dotnet test BitwardenCLI.Tests/BitwardenCLI.Tests.csproj -c Release --filter "Category!=Integration"
+
+  linux-keyboard:
+    name: Linux typing integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install X server and typing tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xdotool xterm x11-utils
+
+      - name: Start headless display
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 &
+          for _ in $(seq 1 50); do
+            xdpyinfo -display :99 >/dev/null 2>&1 && break
+            sleep 0.2
+          done
+
+      # Proves KeyboardTyper's Linux path really drives xdotool and that the
+      # characters reach the focused window. Nothing else covers this.
+      - name: Run typing tests
+        env:
+          DISPLAY: ":99"
+        run: dotnet test BitwardenCLI.Tests/BitwardenCLI.Tests.csproj -c Release --filter "FullyQualifiedName~LinuxKeyboardTests"
+
+  vaultwarden-e2e:
+    name: Vaultwarden end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install the Bitwarden CLI
+        run: npm install -g @bitwarden/cli
+
+      # The runner has Docker, and its bw profile is throwaway, so opting in is safe here.
+      - name: Run end to end tests
+        env:
+          BW_E2E: "1"
+        run: dotnet test BitwardenCLI.Tests/BitwardenCLI.Tests.csproj -c Release --filter "FullyQualifiedName~VaultwardenE2ETests"

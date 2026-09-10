@@ -1,0 +1,28 @@
+{
+  "object": "item",
+  "id": "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f",
+  "organizationId": null,
+  "folderId": null,
+  "type": 1,
+  "reprompt": 0,
+  "name": "GitHub",
+  "notes": null,
+  "favorite": false,
+  "login": {
+    "fido2Credentials": [],
+    "uris": [
+      {
+        "match": null,
+        "uri": "https://github.com"
+      }
+    ],
+    "username": "octocat",
+    "password": "correct horse battery staple",
+    "totp": "JBSWY3DPEHPK3PXP",
+    "passwordRevisionDate": null
+  },
+  "collectionIds": [],
+  "revisionDate": "2026-01-15T10:30:00.000Z",
+  "creationDate": "2025-06-01T08:00:00.000Z",
+  "deletedDate": null
+}

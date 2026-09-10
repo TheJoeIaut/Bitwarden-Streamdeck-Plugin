@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+using System;
+using System.Threading.Tasks;
 using BarRaider.SdTools;
 
 namespace BitwardenStreamdeckPlugin
@@ -8,11 +9,18 @@ namespace BitwardenStreamdeckPlugin
     {
         #region Private Members
 
+        private readonly IBwCli cli;
 
         #endregion
 
-        public Lock(ISDConnection connection, InitialPayload payload) : base(connection, payload)
+        public Lock(ISDConnection connection, InitialPayload payload)
+            : this(connection, payload, BwCli.Shared)
         {
+        }
+
+        internal Lock(ISDConnection connection, InitialPayload payload, IBwCli cli) : base(connection, payload)
+        {
+            this.cli = cli;
         }
 
         public override void Dispose()
@@ -24,9 +32,8 @@ namespace BitwardenStreamdeckPlugin
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, "Key Pressed - Lock");
             LockVault().GetAwaiter().GetResult();
-            Connection.ShowOk();
         }
-        
+
         public override void KeyReleased(KeyPayload payload)
         {
         }
@@ -40,9 +47,18 @@ namespace BitwardenStreamdeckPlugin
 
         }
 
-        private static async Task LockVault()
+        internal async Task LockVault()
         {
-            await BwCliWrapper.GetCli().WithArguments(new[] {"lock"}).ExecuteAsync();
+            try
+            {
+                await cli.Run("lock");
+                await Connection.ShowOk();
+            }
+            catch (Exception e)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, e.Message);
+                await Connection.ShowAlert();
+            }
         }
 
 
