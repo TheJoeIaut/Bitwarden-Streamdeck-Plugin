@@ -64,6 +64,25 @@ public class VaultwardenE2ETests(VaultwardenFixture fixture)
     }
 
     [SkippableFact]
+    public async Task A_locked_vault_fails_instead_of_waiting_on_a_prompt()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        // Without a session key the CLI treats the vault as locked and asks "? Master
+        // password:". The plugin runs it as a child process with no console, so nothing
+        // could ever answer; it would sit on stdin until something killed it.
+        var cli = new BwCli(environment: fixture.CliEnvironment);
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        BwCliException error = await Assert.ThrowsAsync<BwCliException>(() => cli.Run("list", "items"));
+        stopwatch.Stop();
+
+        Assert.DoesNotContain("Master password", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30),
+            $"took {stopwatch.Elapsed.TotalSeconds:N1}s, which suggests it waited for input");
+    }
+
+    [SkippableFact]
     public async Task An_unknown_item_is_reported_as_a_failure()
     {
         Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);

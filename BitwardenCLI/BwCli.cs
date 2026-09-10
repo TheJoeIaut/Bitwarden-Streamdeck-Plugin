@@ -55,7 +55,14 @@ namespace BitwardenStreamdeckPlugin
                 .WithArguments(arguments)
                 .WithValidation(CommandResultValidation.None);
 
-            var variables = new Dictionary<string, string>();
+            // Nothing can ever answer a prompt here: the CLI is a child process with no
+            // console, so a question like "? Master password:" - which is what a locked
+            // vault produces - would leave it waiting on stdin forever. This turns those
+            // prompts into an immediate, reportable failure instead.
+            var variables = new Dictionary<string, string>
+            {
+                ["BW_NOINTERACTION"] = "true"
+            };
 
             if (environment != null)
             {
@@ -70,10 +77,7 @@ namespace BitwardenStreamdeckPlugin
                 variables["BW_SESSION"] = sessionKey;
             }
 
-            if (variables.Count > 0)
-            {
-                command = command.WithEnvironmentVariables(variables);
-            }
+            command = command.WithEnvironmentVariables(variables);
 
             BufferedCommandResult result = await command.ExecuteBufferedAsync();
 
