@@ -7,7 +7,7 @@
         {
           "Image": "Images/Download",
           "TitleAlignment": "middle",
-          "FontSize": "12"
+          "FontSize": 12
         }
       ],
       "SupportedInMultiActions": false,
@@ -22,7 +22,7 @@
         {
           "Image": "Images/unlock",
           "TitleAlignment": "middle",
-          "FontSize": "12"
+          "FontSize": 12
         }
       ],
       "SupportedInMultiActions": false,
@@ -37,7 +37,7 @@
         {
           "Image": "Images/lock",
           "TitleAlignment": "middle",
-          "FontSize": "12"
+          "FontSize": 12
         }
       ],
       "SupportedInMultiActions": false,
@@ -52,7 +52,7 @@
         {
           "Image": "Images/generate",
           "TitleAlignment": "middle",
-          "FontSize": "12"
+          "FontSize": 12
         }
       ],
       "SupportedInMultiActions": true,
@@ -67,22 +67,19 @@
   "Description": "This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow the Lock/Unlock of the vault and the extraction of Username, Password or TOTP. The data is pasted at the current cursor position. This plugin requires the Bitwarden CLI to be already installed on your machine. All products that are compatible with the CLI (Bitwarden, Vaultwarden,...) are supported. Find the complete Bitwarden CLI documentation here: https://bitwarden.com/help/cli/",
   "Icon": "Images/icon",
   "URL": "https://github.com/TheJoeIaut/Bitwarden-Streamdeck-Plugin",
-  "Version": "1.0",
-  "CodePath": "com.thejoeiaut.bitwarden",
+  "UUID": "com.thejoeiaut.bitwarden",
+  "Version": "2.0.0.0",
+  "CodePath": "com.thejoeiaut.bitwarden.exe",
   "Category": "Bitwarden",
   "CategoryIcon": "Images/category",
   "OS": [
     {
       "Platform": "windows",
       "MinimumVersion": "10"
-    },
-    {
-      "Platform": "mac",
-      "MinimumVersion": "10.11"
     }
   ],
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "4.9"
+    "MinimumVersion": "6.4"
   }
 }

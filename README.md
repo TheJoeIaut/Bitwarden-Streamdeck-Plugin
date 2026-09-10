@@ -10,16 +10,53 @@ This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow 
 | Get Item Information | Types a stored username, password or TOTP at the cursor | yes |
 | Generate Password | Generates a password or passphrase and types it at the cursor | no |
 
+## What has changed
+
+### 2.0
+
+The first release since 2023, and a large one. Everything below is new since 1.0.
+
+**New**
+
+- **Generate Password action.** Passwords or passphrases with the same options as the
+  Bitwarden generator, typed at the cursor, copied to the clipboard, or both. Works on a
+  locked vault.
+- **Searchable item picker.** Load your vault once, then type to search it. Entries are
+  labelled with their username so several logins for the same site can be told apart, and
+  a clear button resets the selection.
+- **Username+Password in one press.** Types the username, Tab, then the password.
+- **macOS and Linux code paths.** Typing goes through `osascript` on macOS and
+  `xdotool`/`ydotool` on Linux. The released package is Windows only - build from source
+  for the others, and see [Platform support](#platform-support).
+- **No .NET install needed.** The released build carries its own runtime.
+
+**Fixed**
+
+- **TOTP typed the stored seed, not a code.** The TOTP option typed the raw base32 secret
+  from the vault entry, which no login form accepts. It now asks the CLI for the current
+  six digit code on every press.
+- **A Bitwarden CLI process per keystroke.** Typing in the item field reloaded the whole
+  vault on every character, which also rewrote the field mid-typing and made characters
+  jump and disappear. The list is fetched once, when you press Load.
+- **Hangs on a locked vault.** A `bw` command that wanted to prompt - which is what a
+  locked vault produces - waited forever on input that could never arrive. Prompts are now
+  turned off, so it fails and reports instead.
+
+**Under the hood**
+
+- .NET 10 and BarRaider's StreamDeck-Tools 7.
+- A unit test suite, integration suites covering real Linux typing and an end to end run
+  against a throwaway Vaultwarden server, a dev container and CI.
+- Credentials are handed to the typing helpers over stdin rather than as command line
+  arguments, so they cannot be read out of the process list.
+
 ## Requirements
 
 | You need | Why |
 | --- | --- |
 | [Bitwarden CLI](https://bitwarden.com/help/cli/#download-and-install) (`bw` on `PATH`) | Every action shells out to it; the plugin never talks to Bitwarden directly |
-| [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) | The plugin runs on **.NET 10** |
-| Stream Deck 4.9 or newer | Minimum host version in the plugin manifest |
-
-A self-contained build carries its own runtime and needs no .NET install - see
-[BUILDING.md](BUILDING.md).
+| Stream Deck 6.4 or newer | Minimum host version in the plugin manifest |
+| [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) | Only for framework-dependent builds from source. The released plugin is self-contained and needs no .NET install |
 
 Typing a credential into the focused window needs a platform helper:
 
@@ -52,18 +89,16 @@ the Unlock action does for you.
 
 ### 2. Install the plugin
 
-**From a release.** Download `com.thejoeiaut.bitwarden.zip` from the
-[releases page](https://github.com/TheJoeIaut/Bitwarden-Streamdeck-Plugin/releases),
-unzip it, and double-click the `com.thejoeiaut.bitwarden.streamDeckPlugin` file inside.
-Stream Deck installs it and the actions appear under a **Bitwarden** category in the
-action list.
+**From the Elgato Marketplace.** Search for **Bitwarden** in the Stream Deck store and
+install it. Stream Deck handles updates from then on. This is the recommended route.
 
-> The published 1.0.0 release dates from 2023 and does not include the newer work -
-> the Generate Password action, the searchable item picker, .NET 10 or the Linux and
-> macOS support. For those, build from source.
+Other ways in, if you need them:
 
-**From source.** See [BUILDING.md](BUILDING.md). On Windows,
-`tools/install-local.ps1` publishes and installs in one step.
+- **From a GitHub release.** Download the package from the
+  [releases page](https://github.com/TheJoeIaut/Bitwarden-Streamdeck-Plugin/releases) and
+  double-click the `com.thejoeiaut.bitwarden.streamDeckPlugin` file inside.
+- **From source.** See [BUILDING.md](BUILDING.md). On Windows,
+  `tools/install-local.ps1` publishes and installs in one step.
 
 ### 3. Add the actions
 
@@ -141,14 +176,18 @@ unlock again.
 
 ## Platform support
 
-Elgato's own Stream Deck software runs on **Windows and macOS only**, and the plugin
-manifest has no Linux platform value. To use this plugin on Linux you need a third party
-host such as [OpenDeck](https://github.com/nekename/OpenDeck), which runs plugins built
-for the original Stream Deck SDK. OpenDeck can also run the Windows build under Wine, so
-a native Linux build is not strictly required.
+The released 2.0 package is **Windows only**, and its manifest declares nothing else.
+That is a packaging decision, not a code one: the plugin builds and runs for macOS and
+Linux too, and [BUILDING.md](BUILDING.md) covers publishing for them.
 
-macOS and Linux are built and published successfully but have not been tested on real
-hardware.
+macOS is not shipped because a Mac build has to be signed and notarized before Gatekeeper
+will run it, and it has never been tested on real hardware.
+
+Linux is not a Stream Deck platform at all - Elgato's own software runs on Windows and
+macOS only, and the manifest has no Linux platform value. To use this plugin on Linux you
+need a third party host such as [OpenDeck](https://github.com/nekename/OpenDeck), which
+runs plugins built for the original Stream Deck SDK. OpenDeck can also run the Windows
+build under Wine, so a native Linux build is not strictly required.
 
 ## Development
 
