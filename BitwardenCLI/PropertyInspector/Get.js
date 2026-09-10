@@ -43,6 +43,28 @@ if (typeof loadConfiguration === 'function') {
 }
 
 /**
+ * Empties the search box and reopens the full list, so a new search can be started without
+ * having to select and delete the current entry by hand.
+ */
+function clearItemSelection() {
+    var input = document.getElementById('itemname');
+
+    if (!input) {
+        return;
+    }
+
+    input.value = '';
+    setSettings();
+
+    input.focus();
+
+    if (itemPicker && itemPicker._list && itemPicker._list.length) {
+        itemPicker.evaluate();
+        itemPicker.open();
+    }
+}
+
+/**
  * Asks the plugin to fetch the vault. The list is loaded once and filtered here from then
  * on, so typing never reaches the Bitwarden CLI.
  */

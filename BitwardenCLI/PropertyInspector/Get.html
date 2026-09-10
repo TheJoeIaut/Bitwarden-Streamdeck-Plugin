@@ -14,22 +14,67 @@
     <script src="awesomplete.min.js"></script>
     <script src="Get.js"></script>
     <style>
-        /* The suggestion list is ours to style, which is the point of not using a
-           datalist: entry names with a username appended are long, and the property
-           inspector is narrow, so they have to wrap instead of being cut off. */
-        /* Awesomplete wraps the input in a div of its own, which carries none of sdpi's
-           sizing classes. Make that wrapper fill the row like sdpi's own value elements
-           do, so the input and the dropdown under it span the full width. */
+        /* The search box and its clear button share the row's value area. Awesomplete
+           inserts a wrapper div around the input which carries none of sdpi's sizing
+           classes, hence the explicit flex here and on .awesomplete below. */
+        .picker-row {
+            align-items: stretch;
+            display: flex;
+            flex: 1 1 auto;
+            gap: 4px;
+            min-width: 0;
+        }
+
         .awesomplete {
             flex: 1 1 auto;
             min-width: 0;
         }
 
-        .awesomplete > input {
+        /* Match the height sdpi gives its own inputs and selects, which the wrapper would
+           otherwise let the input choose for itself. */
+        .picker-row input,
+        .picker-row .picker-clear {
             box-sizing: border-box;
+            font-size: 9pt;
+            /* 26px is what sdpi gives its own selects; measured rather than guessed. */
+            height: 26px;
+            line-height: 24px;
+            margin: 0;
+        }
+
+        .picker-row input {
             width: 100%;
         }
 
+        .picker-row .picker-clear {
+            background: #3d3d3d;
+            border: 1px solid #666;
+            border-radius: 3px;
+            color: #969696;
+            cursor: pointer;
+            flex: 0 0 auto;
+            padding: 0;
+            text-align: center;
+            width: 26px;
+            /* sdpi.css sizes every button with !important, so matching the row's other
+               controls needs the same. Only the height is forced. */
+            height: 26px !important;
+            min-height: 26px !important;
+        }
+
+        .picker-row .picker-clear:hover {
+            background: #4d4d4d;
+            color: #fff;
+        }
+
+        .picker-row .picker-clear:active {
+            background: #0078d7;
+            color: #fff;
+        }
+
+        /* The suggestion list is ours to style, which is the point of not using a
+           datalist: entry names carry a username and the property inspector is narrow,
+           so they have to wrap instead of being cut off. */
         .awesomplete > ul {
             background: #3d3d3d;
             border: 1px solid #666;
@@ -89,8 +134,12 @@
         </div>
         <div class="sdpi-item" id="dvSelectedItem">
             <div class="sdpi-item-label">Selected Item</div>
-            <input class="sdpi-item-value sdProperty" id="itemname" type="text"
-                   placeholder="Type to search your vault..." autocomplete="off" oninput="setSettings()">
+            <div class="picker-row">
+                <input class="sdProperty" id="itemname" type="text"
+                       placeholder="Type to search your vault..." autocomplete="off" oninput="setSettings()">
+                <button class="picker-clear" id="clearitem" type="button" title="Clear"
+                        onclick="clearItemSelection()">&#10005;</button>
+            </div>
         </div>
         <div class="sdpi-item" id="dvSelectedInfo">
             <div class="sdpi-item-label">Selected Info</div>
