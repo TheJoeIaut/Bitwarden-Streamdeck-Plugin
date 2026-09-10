@@ -82,20 +82,21 @@ namespace BitwardenStreamdeckPlugin
         {
             try
             {
-                Item item = await GetItem();
-
                 switch (settings.SelectedItemInformation)
                 {
+                    case "totp":
+                        // Asked for separately on purpose: 'bw get item' only carries the
+                        // TOTP secret, and typing that into a login form is useless.
+                        await typer.TypeText(await GetTotpCode());
+                        break;
                     case "password":
-                        await typer.TypeText(item.Password);
+                        await typer.TypeText((await GetItem()).Password);
                         break;
                     case "username":
-                        await typer.TypeText(item.UserName);
-                        break;
-                    case "totp":
-                        await typer.TypeText(item.Totp);
+                        await typer.TypeText((await GetItem()).UserName);
                         break;
                     case "usernamepassword":
+                        Item item = await GetItem();
                         await typer.TypeText(item.UserName);
                         await typer.PressTab();
                         await typer.TypeText(item.Password);
@@ -122,6 +123,26 @@ namespace BitwardenStreamdeckPlugin
             string output = await cli.Run("get", "item", settings.ItemName);
 
             return ParseItem(output);
+        }
+
+        /// <summary>
+        /// The current one time code for the item.
+        ///
+        /// This deliberately does not come from 'bw get item': that returns the item's
+        /// stored TOTP *secret* (a base32 seed such as JBSWY3DPEHPK3PXP), not the six digit
+        /// code a login form expects. The seed looks enough like a password to be mistaken
+        /// for one. 'bw get totp' computes the current code instead.
+        /// </summary>
+        internal async Task<string> GetTotpCode()
+        {
+            string code = (await cli.Run("get", "totp", settings.ItemName)).Trim();
+
+            if (string.IsNullOrEmpty(code))
+            {
+                throw new InvalidOperationException($"No TOTP is configured for '{settings.ItemName}'");
+            }
+
+            return code;
         }
 
         /// <summary>

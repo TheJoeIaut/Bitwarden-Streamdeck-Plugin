@@ -70,6 +70,31 @@ public class VaultwardenE2ETests(VaultwardenFixture fixture)
             () => Cli().Run("get", "item", "no such entry exists"));
     }
 
+    [SkippableFact]
+    public async Task A_totp_request_returns_a_six_digit_code_not_the_stored_secret()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        string code = (await Cli().Run("get", "totp", VaultwardenFixture.TotpItemName)).Trim();
+
+        Assert.Matches(@"^\d{6}$", code);
+        Assert.NotEqual(VaultwardenFixture.TotpSecret, code);
+    }
+
+    [SkippableFact]
+    public async Task The_item_payload_carries_only_the_totp_seed()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        // This is the trap the Get action used to fall into: the seed is right there in the
+        // item and looks enough like a password to be typed by mistake.
+        string output = await Cli().Run("get", "item", VaultwardenFixture.TotpItemName);
+        Item item = Get.ParseItem(output);
+
+        Assert.Equal(VaultwardenFixture.TotpSecret, item.TotpSecret);
+        Assert.DoesNotMatch(@"^\d{6}$", item.TotpSecret);
+    }
+
     /// <summary>
     /// Generation needs no server and no login; this reuses the fixture only for its
     /// isolated CLI profile. It checks that the arguments the action builds actually

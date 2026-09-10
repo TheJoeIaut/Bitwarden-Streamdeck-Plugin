@@ -18,7 +18,8 @@ public class ItemParsingTests
 
         Assert.Equal("octocat", item.UserName);
         Assert.Equal("correct horse battery staple", item.Password);
-        Assert.Equal("JBSWY3DPEHPK3PXP", item.Totp);
+        // The seed, not a usable code - the Get action fetches the code separately.
+        Assert.Equal("JBSWY3DPEHPK3PXP", item.TotpSecret);
     }
 
     [Fact]
@@ -61,7 +62,7 @@ public class ItemParsingTests
         Item item = Get.ParseItem(withoutTotp);
 
         Assert.Equal("u", item.UserName);
-        Assert.Null(item.Totp);
+        Assert.Null(item.TotpSecret);
     }
 
     [Fact]

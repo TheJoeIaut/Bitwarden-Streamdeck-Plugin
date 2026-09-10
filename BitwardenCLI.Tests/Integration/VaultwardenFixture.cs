@@ -19,6 +19,8 @@ public sealed class VaultwardenFixture : IAsyncLifetime
     internal const string ItemName = "StreamDeck E2E Entry";
     internal const string ItemUsername = "e2e-user";
     internal const string ItemPassword = "p@ssw0rd with spaces";
+    internal const string TotpItemName = "StreamDeck E2E TOTP Entry";
+    internal const string TotpSecret = "JBSWY3DPEHPK3PXP";
 
     /// <summary>Session key from the one time login.</summary>
     internal string SessionKey { get; private set; } = string.Empty;
@@ -129,6 +131,19 @@ public sealed class VaultwardenFixture : IAsyncLifetime
 
         await Bw(SessionKey, "create", "item",
             Convert.ToBase64String(Encoding.UTF8.GetBytes(itemJson)));
+
+        // A second entry that actually has a TOTP configured, so the Get action's one time
+        // code path can be exercised against a real generator.
+        string totpItemJson = JsonConvert.SerializeObject(new
+        {
+            type = 1,
+            name = TotpItemName,
+            login = new { username = "totp-user", password = "totp-password", totp = TotpSecret }
+        });
+
+        await Bw(SessionKey, "create", "item",
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(totpItemJson)));
+
         await Bw(SessionKey, "sync");
     }
 

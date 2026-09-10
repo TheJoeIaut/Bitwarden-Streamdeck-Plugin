@@ -52,13 +52,54 @@ public class GetActionTests
     }
 
     [Fact]
-    public async Task Typing_a_totp_sends_the_totp_seed()
+    public async Task Typing_a_totp_sends_the_current_code_not_the_stored_seed()
     {
-        var (action, _, typer, _) = Build("totp");
+        ISDConnection connection = Substitute.For<ISDConnection>();
+        IBwCli cli = Substitute.For<IBwCli>();
+        IKeyboardTyper typer = Substitute.For<IKeyboardTyper>();
+
+        // 'bw get item' carries the seed; only 'bw get totp' computes a usable code.
+        cli.Run("get", "item", "GitHub").Returns(Fixture("get-item.json"));
+        cli.Run("get", "totp", "GitHub").Returns("123456\n");
+
+        var action = new Get(connection,
+            TestPayloads.Initial(new { iteminformation = "totp", itemname = "GitHub" }), cli, typer);
 
         await action.TypeSelectedInformation();
 
-        await typer.Received(1).TypeText("JBSWY3DPEHPK3PXP");
+        await typer.Received(1).TypeText("123456");
+        await typer.DidNotReceive().TypeText("JBSWY3DPEHPK3PXP");
+        await connection.Received(1).ShowOk();
+    }
+
+    [Fact]
+    public async Task Typing_a_totp_asks_the_cli_for_the_code_rather_than_reading_the_item()
+    {
+        var (action, cli, _, _) = Build("totp");
+
+        await action.TypeSelectedInformation();
+
+        await cli.Received(1).Run("get", "totp", "GitHub");
+        await cli.DidNotReceive().Run("get", "item", "GitHub");
+    }
+
+    [Fact]
+    public async Task An_item_without_a_totp_alerts_instead_of_typing_nothing()
+    {
+        ISDConnection connection = Substitute.For<ISDConnection>();
+        IBwCli cli = Substitute.For<IBwCli>();
+        IKeyboardTyper typer = Substitute.For<IKeyboardTyper>();
+
+        // The CLI prints nothing when the entry has no TOTP configured.
+        cli.Run(Arg.Any<string[]>()).Returns("");
+
+        var action = new Get(connection,
+            TestPayloads.Initial(new { iteminformation = "totp", itemname = "GitHub" }), cli, typer);
+
+        await action.TypeSelectedInformation();
+
+        await connection.Received(1).ShowAlert();
+        await typer.DidNotReceive().TypeText(Arg.Any<string>());
     }
 
     [Fact]
