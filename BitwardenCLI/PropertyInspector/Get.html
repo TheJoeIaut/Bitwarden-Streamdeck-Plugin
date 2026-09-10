@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
@@ -7,8 +7,74 @@
     <meta name=apple-mobile-web-app-status-bar-style content=black>
     <title>Bitwarden Get Settings</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
+    <!-- Shipped with the plugin rather than pulled from a CDN, so the picker still works
+         offline. Awesomplete, MIT licensed. -->
+    <link rel="stylesheet" href="awesomplete.base.css">
     <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
+    <script src="awesomplete.min.js"></script>
     <script src="Get.js"></script>
+    <style>
+        /* The suggestion list is ours to style, which is the point of not using a
+           datalist: entry names with a username appended are long, and the property
+           inspector is narrow, so they have to wrap instead of being cut off. */
+        /* Awesomplete wraps the input in a div of its own, which carries none of sdpi's
+           sizing classes. Make that wrapper fill the row like sdpi's own value elements
+           do, so the input and the dropdown under it span the full width. */
+        .awesomplete {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .awesomplete > input {
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .awesomplete > ul {
+            background: #3d3d3d;
+            border: 1px solid #666;
+            border-radius: 3px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+            margin: 2px 0 0;
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 0;
+            text-shadow: none;
+            width: 100%;
+        }
+
+        .awesomplete > ul > li {
+            color: #d8d8d8;
+            font-size: 9pt;
+            line-height: 1.35;
+            padding: 5px 8px;
+            /* Show the entire entry, however long, rather than clipping it. */
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .awesomplete > ul > li:hover,
+        .awesomplete > ul > li[aria-selected="true"] {
+            background: #0078d7;
+            color: #fff;
+        }
+
+        .awesomplete > ul > li mark {
+            background: transparent;
+            color: #7fd3ff;
+            font-weight: bold;
+        }
+
+        .awesomplete > ul > li[aria-selected="true"] mark {
+            background: transparent;
+            color: #fff;
+        }
+
+        .awesomplete > ul:empty {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="sdpi-wrapper">
@@ -19,9 +85,8 @@
         </div>
         <div class="sdpi-item" id="dvSelectedItem">
             <div class="sdpi-item-label">Selected Item</div>
-            <input class="sdpi-item-value sdProperty" id="itemname" list="itemCandidates"
-                   placeholder="Type to search your vault..." oninput="setSettings()">
-            <datalist id="itemCandidates"></datalist>
+            <input class="sdpi-item-value sdProperty" id="itemname" type="text"
+                   placeholder="Type to search your vault..." autocomplete="off" oninput="setSettings()">
         </div>
         <div class="sdpi-item" id="dvSelectedInfo">
             <div class="sdpi-item-label">Selected Info</div>
@@ -31,7 +96,7 @@
                 <option value="totp">TOTP</option>
                 <option value="usernamepassword">Username+Password</option>
             </select>
-        </div>  
+        </div>
     </div>
 </body>
 </html>
