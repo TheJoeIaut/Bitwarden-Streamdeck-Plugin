@@ -97,7 +97,13 @@ public class LinuxKeyboardTests
 
         try
         {
-            await WaitForWindow("xterm");
+            string windowId = await WaitForWindow("xterm");
+
+            // Xvfb has no window manager, so nothing ever gives the terminal input focus
+            // and the XTEST keystrokes would go nowhere. Set it directly.
+            await Cli.Wrap("xdotool")
+                .WithArguments(new[] { "windowfocus", "--sync", windowId })
+                .ExecuteAsync();
 
             var typer = new KeyboardTyper();
             await typer.TypeText(secret);
@@ -118,20 +124,26 @@ public class LinuxKeyboardTests
         }
     }
 
-    private static async Task WaitForWindow(string name)
+    /// <summary>
+    /// Waits for a visible window of the given class and returns its id.
+    /// </summary>
+    private static async Task<string> WaitForWindow(string name)
     {
         for (int attempt = 0; attempt < 50; attempt++)
         {
             BufferedCommandResult result = await Cli.Wrap("xdotool")
-                .WithArguments(new[] { "search", "--sync", "--onlyvisible", "--class", name })
+                .WithArguments(new[] { "search", "--onlyvisible", "--class", name })
                 .WithValidation(CommandResultValidation.None)
                 .ExecuteBufferedAsync();
 
-            if (result.ExitCode == 0 && !string.IsNullOrWhiteSpace(result.StandardOutput))
+            string[] ids = result.StandardOutput
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (result.ExitCode == 0 && ids.Length > 0)
             {
                 // Give the terminal a moment to be ready for input.
                 await Task.Delay(500);
-                return;
+                return ids[^1];
             }
 
             await Task.Delay(100);

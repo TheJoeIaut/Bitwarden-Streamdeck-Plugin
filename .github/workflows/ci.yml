@@ -73,20 +73,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends xvfb xdotool xterm x11-utils
 
-      - name: Start headless display
-        run: |
-          Xvfb :99 -screen 0 1280x1024x24 &
-          for _ in $(seq 1 50); do
-            xdpyinfo -display :99 >/dev/null 2>&1 && break
-            sleep 0.2
-          done
-
       # Proves KeyboardTyper's Linux path really drives xdotool and that the
       # characters reach the focused window. Nothing else covers this.
+      #
+      # xvfb-run owns the display for exactly the lifetime of the test process. Starting
+      # Xvfb in a separate step and relying on it surviving into the next one is fragile.
       - name: Run typing tests
-        env:
-          DISPLAY: ":99"
-        run: dotnet test BitwardenCLI.Tests/BitwardenCLI.Tests.csproj -c Release --filter "FullyQualifiedName~LinuxKeyboardTests"
+        run: >
+          xvfb-run -a --server-args="-screen 0 1280x1024x24"
+          dotnet test BitwardenCLI.Tests/BitwardenCLI.Tests.csproj -c Release
+          --filter "FullyQualifiedName~LinuxKeyboardTests"
 
   vaultwarden-e2e:
     name: Vaultwarden end to end

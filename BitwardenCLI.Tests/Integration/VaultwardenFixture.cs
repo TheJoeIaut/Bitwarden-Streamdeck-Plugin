@@ -60,8 +60,7 @@ public sealed class VaultwardenFixture : IAsyncLifetime
             Directory.CreateDirectory(dataDirectory);
             CliEnvironment = new Dictionary<string, string> { ["BITWARDENCLI_APPDATA_DIR"] = dataDirectory };
 
-            container = new ContainerBuilder()
-                .WithImage("docker.io/vaultwarden/server:latest")
+            container = new ContainerBuilder("docker.io/vaultwarden/server:latest")
                 .WithEnvironment("SIGNUPS_ALLOWED", "true")
                 .WithEnvironment("ROCKET_PORT", "80")
                 // Vaultwarden refuses to start without this when no persistent volume is set.
