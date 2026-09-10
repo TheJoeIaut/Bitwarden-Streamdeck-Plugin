@@ -10,34 +10,16 @@ This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow 
 | Get Item Information | Types a stored username, password or TOTP at the cursor | yes |
 | Generate Password | Generates a password or passphrase and types it at the cursor | no |
 
-### Generate Password
-
-Exposes the same options as the Bitwarden generator, backed by `bw generate`:
-
-- **Password**: length, which character types to include (`A-Z`, `a-z`, `0-9`, symbols),
-  minimum counts for numbers and symbols, and avoiding ambiguous characters.
-- **Passphrase**: word count, separator, title casing and including a number.
-
-Because generation happens entirely in the CLI, this action works on a locked vault - no
-Unlock needed first.
-
-Unchecking every character type is refused rather than quietly falling back to a default,
-so you can never end up with a weaker password than the one you configured.
-
-## Instructions
-1. Download the Bitwarden CLI (https://bitwarden.com/help/cli/#download-and-install)
-2. (optional) Configure your CLI (https://bitwarden.com/help/cli/#config)
-3. Login (https://bitwarden.com/help/cli/#log-in)
-4. Unlock the vault via CLI or configure Unlock Action in plugin
-5. Configure Get Information Task
-6. (optional) Lock Vault via CLI or configure Lock Action in plugin
-
 ## Requirements
 
-The plugin runs on **.NET 10** and requires the
-[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) to be
-installed. If you would rather ship a build that does not need the runtime, see the
-self-contained publish commands below.
+| You need | Why |
+| --- | --- |
+| [Bitwarden CLI](https://bitwarden.com/help/cli/#download-and-install) (`bw` on `PATH`) | Every action shells out to it; the plugin never talks to Bitwarden directly |
+| [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) | The plugin runs on **.NET 10** |
+| Stream Deck 4.9 or newer | Minimum host version in the plugin manifest |
+
+A self-contained build carries its own runtime and needs no .NET install - see
+[BUILDING.md](BUILDING.md).
 
 Typing a credential into the focused window needs a platform helper:
 
@@ -52,6 +34,111 @@ On Linux the helper is picked at runtime: `ydotool` when `WAYLAND_DISPLAY` is se
 otherwise `xdotool`. Credentials are handed to these tools over stdin, never as command
 line arguments, so they cannot be read out of the process list.
 
+## Installation
+
+### 1. Set up the Bitwarden CLI
+
+The plugin drives an already-configured `bw`, so do this first and confirm it works from
+a terminal before touching Stream Deck.
+
+1. [Download and install the CLI](https://bitwarden.com/help/cli/#download-and-install)
+   and make sure `bw` is on your `PATH`.
+2. (optional) [Point it at your server](https://bitwarden.com/help/cli/#config) if you
+   use Vaultwarden or a self-hosted Bitwarden: `bw config server https://vault.example.com`
+3. [Log in](https://bitwarden.com/help/cli/#log-in): `bw login`
+
+Logging in is a one-time step and survives reboots. Unlocking is separate, and is what
+the Unlock action does for you.
+
+### 2. Install the plugin
+
+**From a release.** Download `com.thejoeiaut.bitwarden.zip` from the
+[releases page](https://github.com/TheJoeIaut/Bitwarden-Streamdeck-Plugin/releases),
+unzip it, and double-click the `com.thejoeiaut.bitwarden.streamDeckPlugin` file inside.
+Stream Deck installs it and the actions appear under a **Bitwarden** category in the
+action list.
+
+> The published 1.0.0 release dates from 2023 and does not include the newer work -
+> the Generate Password action, the searchable item picker, .NET 10 or the Linux and
+> macOS support. For those, build from source.
+
+**From source.** See [BUILDING.md](BUILDING.md). On Windows,
+`tools/install-local.ps1` publishes and installs in one step.
+
+### 3. Add the actions
+
+Drag **Unlock** and **Get Item Information** onto keys and configure them as described
+below. Both are under the Bitwarden category.
+
+## Usage
+
+### Unlock
+
+Configure one credential source in the action's settings. If more than one is filled in,
+the first of these wins:
+
+1. **Master Password** - typed straight into the settings.
+2. **Environment Variable** - the *name* of a variable holding the password
+   (`bw unlock --passwordenv`). The variable has to be visible to the Stream Deck
+   process, so set it system-wide and restart Stream Deck.
+3. **Password File** - a file whose contents are the password
+   (`bw unlock --passwordfile`).
+
+> Prefer the environment variable or password file. The master password option is passed
+> to `bw` as a command line argument, which is visible in the process list while the
+> command runs, and Stream Deck stores action settings in plain text on disk either way.
+
+Pressing the key unlocks the vault and keeps the session key in memory for the other
+actions. The key shows a checkmark on success and a warning triangle if the CLI refused
+- a wrong password, or not being logged in.
+
+The session lives in the plugin process, so it is gone when Stream Deck restarts. Press
+Unlock again after a restart; it does not need to be re-configured.
+
+### Get Item Information
+
+1. Unlock the vault first - the item list cannot be read from a locked vault.
+2. Press **Load** in the action's settings. That fetches your vault entries once. Each
+   entry is labelled with its username in parentheses so several logins for the same site
+   can be told apart.
+3. Type in **Selected Item** to search the loaded entries, and pick one. The X button
+   clears the selection.
+4. Choose what the key types under **Selected Info**:
+
+| Selected Info | What gets typed |
+| --- | --- |
+| Username | The entry's username |
+| Password | The entry's password |
+| TOTP | The current six digit code, computed fresh on every press |
+| Username+Password | Username, then Tab, then password - fills a whole login form |
+
+The list is loaded only when you press Load, not while you type, so pressing Load again
+is how you pick up entries added to your vault since.
+
+TOTP asks the CLI for the current code rather than reading the stored seed, so what
+arrives at the cursor is a code a login form accepts.
+
+### Generate Password
+
+Needs no unlocked vault - generation happens entirely in the CLI. Exposes the same
+options as the Bitwarden generator, backed by `bw generate`:
+
+- **Password**: length, which character types to include (`A-Z`, `a-z`, `0-9`, symbols),
+  minimum counts for numbers and symbols, and avoiding ambiguous characters.
+- **Passphrase**: word count, separator (a single character, or the words `space` or
+  `empty`), title casing and including a number.
+
+**Output** decides where the result goes: typed at the cursor, copied to the clipboard,
+or both. Anything put on the clipboard stays there until something else replaces it.
+
+Unchecking every character type is refused rather than quietly falling back to a default,
+so you can never end up with a weaker password than the one you configured.
+
+### Lock
+
+No settings. Pressing the key locks the vault; the next Get press will fail until you
+unlock again.
+
 ## Platform support
 
 Elgato's own Stream Deck software runs on **Windows and macOS only**, and the plugin
@@ -63,97 +150,7 @@ a native Linux build is not strictly required.
 macOS and Linux are built and published successfully but have not been tested on real
 hardware.
 
-## Building
+## Development
 
-The project targets `net10.0` and uses BarRaider's
-[StreamDeck-Tools](https://github.com/BarRaider/streamdeck-tools) v7.
-
-```bash
-dotnet build BitwardenCLI/BitwardenStreamdeckPlugin.csproj -c Release
-```
-
-The build drops a ready-to-use plugin folder at
-`BitwardenCLI/bin/Release/com.thejoeiaut.bitwarden.sdPlugin/`. Copy it into your host's
-plugin directory (on Windows, `%APPDATA%\Elgato\StreamDeck\Plugins\`, with Stream Deck
-closed) to test it locally.
-
-To produce a build that carries its own runtime, publish self-contained into a
-`.sdPlugin` folder and zip that folder:
-
-```bash
-dotnet publish BitwardenCLI/BitwardenStreamdeckPlugin.csproj -c Release -r win-x64 --self-contained true -o out/com.thejoeiaut.bitwarden.sdPlugin
-```
-
-Swap `-r win-x64` for `linux-x64` or `osx-arm64` to build for the other platforms.
-Always pass `-o` when publishing so the RID-specific output does not overwrite the
-plain `dotnet build` output folder.
-
-> Prefer `dotnet publish -r <rid>` over a plain `dotnet build` when you want something to
-> ship or install. Since the plugin gained Linux and macOS targets, a plain build carries
-> every platform's SkiaSharp natives and comes to roughly 180 MB; publishing for a single
-> runtime keeps it near 16 MB.
-
-### Installing your build locally (Windows)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tools/install-local.ps1
-```
-
-That publishes, stops Stream Deck, replaces
-`%APPDATA%\Elgato\StreamDeck\Plugins\com.thejoeiaut.bitwarden.sdPlugin`, starts Stream Deck
-again and prints the plugin's log so you can see it registered.
-
-Stream Deck holds the plugin's executable open, so it has to be stopped for the files to be
-replaced - there is no way around the restart. Stream Deck usually runs at a higher
-integrity level than an ordinary shell, so stopping it outright needs an elevated prompt;
-otherwise the script asks you to quit it from its tray icon and waits (`-WaitMinutes`,
-10 by default). Pass `-SkipBuild` to install the last publish again, or `-NoRelaunch` to
-leave Stream Deck closed.
-
-## Tests
-
-Unit tests need nothing beyond the SDK and run everywhere:
-
-```bash
-dotnet test BitwardenCLI.Tests/BitwardenCLI.Tests.csproj --filter "Category!=Integration"
-```
-
-They cover the parsing of Bitwarden CLI output, the unlock argument selection, the
-keyboard layer's platform choices, and each action's success and failure paths against a
-stubbed CLI and keyboard.
-
-### Integration tests
-
-Two suites are marked `Category=Integration` and are excluded from the command above.
-
-**Linux typing** (`LinuxKeyboardTests`) checks that `KeyboardTyper` really drives
-`xdotool` and that the characters arrive in the focused window. It needs Linux, an X
-display and `xdotool`, and skips anywhere else. The dev container and the CI Linux job
-both provide those.
-
-**Vaultwarden end to end** (`VaultwardenE2ETests`) starts a throwaway Vaultwarden server
-with Testcontainers, registers an account, seeds a login entry and reads it back through
-the real `bw` CLI. It needs a container runtime (Docker or Podman), `bw` on `PATH`, and:
-
-```bash
-BW_E2E=1 dotnet test BitwardenCLI.Tests/BitwardenCLI.Tests.csproj --filter "Category=Integration"
-```
-
-> The `BW_E2E` opt-in exists because these tests run the real `bw` binary, which on a
-> developer machine is usually signed in to a real vault. Every invocation is given its
-> own throwaway `BITWARDENCLI_APPDATA_DIR`, so your login, server configuration and
-> session are never read or modified - but the tests stay opt-in regardless.
-
-There is no `bw register` command, so the fixture derives the account keys itself the way
-the official clients do (PBKDF2, HKDF, AES-CBC plus HMAC). If that were wrong the
-subsequent `bw login` would simply fail, so the end to end run validates it.
-
-### Dev container
-
-`.devcontainer/` builds an image with the .NET 10 SDK, the Bitwarden CLI, `xdotool`,
-`xterm` and Xvfb, and starts a headless display on `:99`. Opening the repository in it
-lets the full suite - including both integration suites - run on Linux:
-
-```bash
-dotnet test BitwardenCLI.Tests/BitwardenCLI.Tests.csproj
-```
+- [BUILDING.md](BUILDING.md) - building, self-contained publishing, installing a local build
+- [TESTING.md](TESTING.md) - unit tests, the integration suites and the dev container
