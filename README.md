@@ -55,7 +55,7 @@ The first release since 2023, and a large one. Everything below is new since 1.0
 | You need | Why |
 | --- | --- |
 | [Bitwarden CLI](https://bitwarden.com/help/cli/#download-and-install) (`bw` on `PATH`) | Every action shells out to it; the plugin never talks to Bitwarden directly |
-| Stream Deck 6.4 or newer | Minimum host version in the plugin manifest |
+| Stream Deck 6.9 or newer | Minimum host version in the plugin manifest |
 | [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) | Only for framework-dependent builds from source. The released plugin is self-contained and needs no .NET install |
 
 Typing a credential into the focused window needs a platform helper:
@@ -89,7 +89,7 @@ the Unlock action does for you.
 
 ### 2. Install the plugin
 
-**From the Elgato Marketplace.** Search for **Bitwarden** in the Stream Deck store and
+**From the Elgato Marketplace.** Search for **Bitwarden Tools** in the Stream Deck store and
 install it. Stream Deck handles updates from then on. This is the recommended route.
 
 Other ways in, if you need them:
@@ -103,7 +103,7 @@ Other ways in, if you need them:
 ### 3. Add the actions
 
 Drag **Unlock** and **Get Item Information** onto keys and configure them as described
-below. Both are under the Bitwarden category.
+below. Both are under the Bitwarden Tools category.
 
 ## Usage
 
