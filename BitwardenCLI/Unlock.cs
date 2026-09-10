@@ -10,7 +10,7 @@ using Newtonsoft.Json.Linq;
 namespace BitwardenStreamdeckPlugin
 {
     [PluginActionId("com.thejoeiaut.bitwardenunlock")]
-    public class Unlock : PluginBase
+    public class Unlock : KeypadBase
     {
         private class PluginSettings
         {
@@ -42,7 +42,7 @@ namespace BitwardenStreamdeckPlugin
 
         #endregion
 
-        public Unlock(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public Unlock(ISDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {

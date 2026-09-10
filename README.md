@@ -8,3 +8,32 @@ This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow 
 4. Unlock the vault via CLI or configure Unlock Action in plugin
 5. Configure Get Information Task
 6. (optional) Lock Vault via CLI or configure Lock Action in plugin
+
+## Requirements
+
+The plugin runs on **.NET 10** and requires the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
+to be installed. If you would rather ship a build that does not need the runtime, see
+the self-contained publish command below.
+
+## Building
+
+The project targets `net10.0-windows` and uses BarRaider's
+[StreamDeck-Tools](https://github.com/BarRaider/streamdeck-tools) v7.
+
+```bash
+dotnet build BitwardenCLI/BitwardenStreamdeckPlugin.csproj -c Release
+```
+
+The build drops a ready-to-use plugin folder at
+`BitwardenCLI/bin/Release/com.thejoeiaut.bitwarden.sdPlugin/`. Copy it into
+`%APPDATA%\Elgato\StreamDeck\Plugins\` (with Stream Deck closed) to test it locally.
+
+To produce a build that carries its own runtime, publish self-contained into a
+`.sdPlugin` folder and zip that folder:
+
+```bash
+dotnet publish BitwardenCLI/BitwardenStreamdeckPlugin.csproj -c Release -r win-x64 --self-contained true -o out/com.thejoeiaut.bitwarden.sdPlugin
+```
+
+Always pass `-o` when publishing so the RID-specific output does not overwrite the
+plain `dotnet build` output folder.

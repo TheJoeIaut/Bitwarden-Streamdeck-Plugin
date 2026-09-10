@@ -4,14 +4,14 @@ using BarRaider.SdTools;
 namespace BitwardenStreamdeckPlugin
 {
     [PluginActionId("com.thejoeiaut.bitwardenlock")]
-    public class Lock : PluginBase
+    public class Lock : KeypadBase
     {
         #region Private Members
 
 
         #endregion
 
-        public Lock(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public Lock(ISDConnection connection, InitialPayload payload) : base(connection, payload)
         {
         }
 

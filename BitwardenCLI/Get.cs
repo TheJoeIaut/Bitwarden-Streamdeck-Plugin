@@ -7,12 +7,11 @@ using CliWrap.Buffered;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using WindowsInput;
-using WindowsInput.Native;
 
 namespace BitwardenStreamdeckPlugin
 {
     [PluginActionId("com.thejoeiaut.bitwardenget")]
-    public class Get : PluginBase
+    public class Get : KeypadBase
     {
         private class PluginSettings
         {
@@ -43,7 +42,7 @@ namespace BitwardenStreamdeckPlugin
 
         #endregion
 
-        public Get(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public Get(ISDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
