@@ -193,3 +193,12 @@ build under Wine, so a native Linux build is not strictly required.
 
 - [BUILDING.md](BUILDING.md) - building, self-contained publishing, installing a local build
 - [TESTING.md](TESTING.md) - unit tests, the integration suites and the dev container
+
+## License
+
+[MIT](LICENSE). The bundled copy of [Awesomplete](https://projects.verou.me/awesomplete/)
+is MIT licensed too and keeps its own notice in
+`BitwardenCLI/PropertyInspector/awesomplete.min.js`.
+
+This is an unofficial plugin and is not affiliated with or endorsed by Bitwarden or
+Elgato.
