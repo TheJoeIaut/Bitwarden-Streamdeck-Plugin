@@ -70,6 +70,70 @@ public class VaultwardenE2ETests(VaultwardenFixture fixture)
             () => Cli().Run("get", "item", "no such entry exists"));
     }
 
+    /// <summary>
+    /// Generation needs no server and no login; this reuses the fixture only for its
+    /// isolated CLI profile. It checks that the arguments the action builds actually
+    /// produce what they claim - a dropped flag would silently weaken the password.
+    /// </summary>
+    [SkippableFact]
+    public async Task A_generated_password_honours_the_configured_options()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        Generate.PluginSettings settings = Generate.PluginSettings.CreateDefaultSettings();
+        settings.Length = 32;
+        settings.Special = true;
+        settings.MinSpecial = 2;
+
+        var cli = new BwCli(environment: fixture.CliEnvironment);
+        string password = (await cli.Run(Generate.BuildGenerateArguments(settings))).Trim();
+
+        Assert.Equal(32, password.Length);
+        Assert.Contains(password, char.IsUpper);
+        Assert.Contains(password, char.IsLower);
+        Assert.Contains(password, char.IsDigit);
+        Assert.True(password.Count(c => !char.IsLetterOrDigit(c)) >= 2, $"expected 2+ specials in '{password}'");
+    }
+
+    [SkippableFact]
+    public async Task A_generated_password_excludes_the_character_types_that_are_off()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        Generate.PluginSettings settings = Generate.PluginSettings.CreateDefaultSettings();
+        settings.Uppercase = false;
+        settings.Number = false;
+        settings.Special = false;
+        settings.Length = 24;
+
+        string[] arguments = Generate.BuildGenerateArguments(settings);
+        var cli = new BwCli(environment: fixture.CliEnvironment);
+        string password = (await cli.Run(arguments)).Trim();
+
+        string context = $"args: bw {string.Join(" ", arguments)} -> '{password}'";
+        Assert.Equal(24, password.Length);
+        Assert.All(password, c => Assert.True(char.IsLower(c), $"unexpected '{c}'; {context}"));
+    }
+
+    [SkippableFact]
+    public async Task A_generated_passphrase_has_the_requested_shape()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        Generate.PluginSettings settings = Generate.PluginSettings.CreateDefaultSettings();
+        settings.GeneratorType = "passphrase";
+        settings.Words = 5;
+        settings.Separator = "_";
+        settings.Capitalize = true;
+
+        var cli = new BwCli(environment: fixture.CliEnvironment);
+        string passphrase = (await cli.Run(Generate.BuildGenerateArguments(settings))).Trim();
+
+        string[] words = passphrase.Split('_');
+        Assert.Equal(5, words.Length);
+        Assert.All(words, w => Assert.True(char.IsUpper(w[0]), $"'{w}' is not capitalized"));
+    }
+
     [SkippableFact]
     public async Task Locking_the_vault_invalidates_the_session_key()
     {

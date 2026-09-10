@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
+    <meta name=apple-mobile-web-app-capable content=yes>
+    <meta name=apple-mobile-web-app-status-bar-style content=black>
+    <title>Bitwarden Generate Settings</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
+    <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
+    <script src="Generate.js"></script>
+</head>
+<body>
+    <div class="sdpi-wrapper">
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Type</div>
+            <select class="sdProperty" id="generatortype" oninput="setSettings(); updateVisibility()">
+                <option value="password">Password</option>
+                <option value="passphrase">Passphrase</option>
+            </select>
+        </div>
+
+        <!-- Password options -->
+        <div class="sdpi-item passwordOption">
+            <div class="sdpi-item-label">Length</div>
+            <input class="sdpi-item-value sdProperty" id="length" type="number" min="5" max="128" value="14" oninput="setSettings()">
+        </div>
+
+        <div type="checkbox" class="sdpi-item passwordOption">
+            <div class="sdpi-item-label">Characters</div>
+            <div class="sdpi-item-value">
+                <div class="sdpi-item-child">
+                    <input id="uppercase" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="uppercase" class="sdpi-item-label"><span></span>A-Z</label>
+                </div>
+                <div class="sdpi-item-child">
+                    <input id="lowercase" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="lowercase" class="sdpi-item-label"><span></span>a-z</label>
+                </div>
+                <div class="sdpi-item-child">
+                    <input id="number" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="number" class="sdpi-item-label"><span></span>0-9</label>
+                </div>
+                <div class="sdpi-item-child">
+                    <input id="special" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="special" class="sdpi-item-label"><span></span>!@#$%^&amp;*</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="sdpi-item passwordOption">
+            <div class="sdpi-item-label">Min numbers</div>
+            <input class="sdpi-item-value sdProperty" id="minnumber" type="number" min="0" max="9" value="1" oninput="setSettings()">
+        </div>
+
+        <div class="sdpi-item passwordOption">
+            <div class="sdpi-item-label">Min special</div>
+            <input class="sdpi-item-value sdProperty" id="minspecial" type="number" min="0" max="9" value="1" oninput="setSettings()">
+        </div>
+
+        <div type="checkbox" class="sdpi-item passwordOption">
+            <div class="sdpi-item-label">Ambiguous</div>
+            <div class="sdpi-item-value">
+                <div class="sdpi-item-child">
+                    <input id="avoidambiguous" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="avoidambiguous" class="sdpi-item-label"><span></span>Avoid ambiguous characters</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passphrase options -->
+        <div class="sdpi-item passphraseOption">
+            <div class="sdpi-item-label">Words</div>
+            <input class="sdpi-item-value sdProperty" id="words" type="number" min="3" max="20" value="3" oninput="setSettings()">
+        </div>
+
+        <div class="sdpi-item passphraseOption">
+            <div class="sdpi-item-label">Separator</div>
+            <input class="sdpi-item-value sdProperty" id="separator" type="text" value="-" oninput="setSettings()">
+            <p>A single character, or the words <b>space</b> or <b>empty</b>.</p>
+        </div>
+
+        <div type="checkbox" class="sdpi-item passphraseOption">
+            <div class="sdpi-item-label">Options</div>
+            <div class="sdpi-item-value">
+                <div class="sdpi-item-child">
+                    <input id="capitalize" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="capitalize" class="sdpi-item-label"><span></span>Capitalize</label>
+                </div>
+                <div class="sdpi-item-child">
+                    <input id="includenumber" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="includenumber" class="sdpi-item-label"><span></span>Include number</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="sdpi-item">
+            <details class="message">
+                <summary>The generated value is typed at the cursor. This action does not need the vault to be unlocked.</summary>
+            </details>
+        </div>
+
+    </div>
+</body>
+</html>

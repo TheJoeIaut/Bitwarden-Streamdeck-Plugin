@@ -1,6 +1,29 @@
 # Bitwarden-Streamdeck-Plugin
 This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow the Lock/Unlock of the vault and the extraction of Username, Password or TOTP. The data is pasted at the current cursor position. This plugin requires the Bitwarden CLI to be already installed on your machine. All products that are compatible with the CLI (Bitwarden, Vaultwarden,...) are supported. Find the complete Bitwarden CLI documentation here: https://bitwarden.com/help/cli/
 
+## Actions
+
+| Action | What it does | Needs an unlocked vault |
+| --- | --- | --- |
+| Unlock | Unlocks the vault using a master password, environment variable or password file | - |
+| Lock | Locks the vault | - |
+| Get Item Information | Types a stored username, password or TOTP at the cursor | yes |
+| Generate Password | Generates a password or passphrase and types it at the cursor | no |
+
+### Generate Password
+
+Exposes the same options as the Bitwarden generator, backed by `bw generate`:
+
+- **Password**: length, which character types to include (`A-Z`, `a-z`, `0-9`, symbols),
+  minimum counts for numbers and symbols, and avoiding ambiguous characters.
+- **Passphrase**: word count, separator, title casing and including a number.
+
+Because generation happens entirely in the CLI, this action works on a locked vault - no
+Unlock needed first.
+
+Unchecking every character type is refused rather than quietly falling back to a default,
+so you can never end up with a weaker password than the one you configured.
+
 ## Instructions
 1. Download the Bitwarden CLI (https://bitwarden.com/help/cli/#download-and-install)
 2. (optional) Configure your CLI (https://bitwarden.com/help/cli/#config)

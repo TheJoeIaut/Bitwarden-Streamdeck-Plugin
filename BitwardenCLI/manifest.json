@@ -44,6 +44,21 @@
       "Tooltip": "Get Credential",
       "UUID": "com.thejoeiaut.bitwardenlock",
       "PropertyInspectorPath": "PropertyInspector/Lock.html"
+    },
+    {
+      "Icon": "Images/generate",
+      "Name": "Generate Password",
+      "States": [
+        {
+          "Image": "Images/generate",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Generate a password or passphrase and type it at the cursor",
+      "UUID": "com.thejoeiaut.bitwardengenerate",
+      "PropertyInspectorPath": "PropertyInspector/Generate.html"
     }
 
   ],
