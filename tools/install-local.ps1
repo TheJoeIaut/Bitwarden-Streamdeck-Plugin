@@ -15,7 +15,7 @@
     Publishing for win-x64 keeps it at ~16 MB.
 
 .EXAMPLE
-    pwsh -File tools/install-local.ps1
+    powershell -ExecutionPolicy Bypass -File tools/install-local.ps1
 #>
 [CmdletBinding()]
 param(
@@ -23,7 +23,10 @@ param(
     [switch] $SkipBuild,
 
     # Do not start Stream Deck again afterwards.
-    [switch] $NoRelaunch
+    [switch] $NoRelaunch,
+
+    # How long to wait for Stream Deck to be quit by hand when it cannot be stopped here.
+    [int] $WaitMinutes = 10
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,9 +57,16 @@ if ($wasRunning) {
         Get-Process StreamDeck -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction Stop
     }
     catch {
-        Write-Warning 'Could not stop Stream Deck from this shell (it runs elevated).'
-        Write-Warning 'Quit it from its tray icon, then press Enter to continue.'
-        Read-Host ' ready?' | Out-Null
+        # Stream Deck usually runs at a higher integrity level than an ordinary shell, so
+        # this only works from an elevated one. Waiting beats prompting: it behaves the same
+        # whether a person is watching or a script is driving.
+        Write-Warning 'Cannot stop Stream Deck from this shell - it runs elevated.'
+        Write-Warning "Quit it from its tray icon; waiting up to $WaitMinutes minute(s)..."
+
+        foreach ($i in 1..($WaitMinutes * 30)) {
+            if (-not (Get-Process StreamDeck -ErrorAction SilentlyContinue)) { break }
+            Start-Sleep -Seconds 2
+        }
     }
 
     # The plugin is a child process and usually goes with it.

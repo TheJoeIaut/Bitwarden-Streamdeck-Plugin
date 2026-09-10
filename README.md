@@ -96,7 +96,7 @@ plain `dotnet build` output folder.
 ### Installing your build locally (Windows)
 
 ```powershell
-pwsh -File tools/install-local.ps1
+powershell -ExecutionPolicy Bypass -File tools/install-local.ps1
 ```
 
 That publishes, stops Stream Deck, replaces
@@ -104,9 +104,11 @@ That publishes, stops Stream Deck, replaces
 again and prints the plugin's log so you can see it registered.
 
 Stream Deck holds the plugin's executable open, so it has to be stopped for the files to be
-replaced - there is no way around the restart. If it is running elevated the script cannot
-stop it and will ask you to quit it from its tray icon first. Pass `-SkipBuild` to install
-the last publish again, or `-NoRelaunch` to leave Stream Deck closed.
+replaced - there is no way around the restart. Stream Deck usually runs at a higher
+integrity level than an ordinary shell, so stopping it outright needs an elevated prompt;
+otherwise the script asks you to quit it from its tray icon and waits (`-WaitMinutes`,
+10 by default). Pass `-SkipBuild` to install the last publish again, or `-NoRelaunch` to
+leave Stream Deck closed.
 
 ## Tests
 
