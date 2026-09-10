@@ -288,6 +288,99 @@ public class GetActionTests
         await cli.Received(1).Run("get", "totp", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
     }
 
+    // --- the vault is listed once, not once per keystroke ---
+
+    private static (Get action, IBwCli cli, ISDConnection connection) ForSettings()
+    {
+        ISDConnection connection = Substitute.For<ISDConnection>();
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(File.ReadAllText(Path.Combine("Fixtures", "list-items.json")));
+
+        var action = new Get(connection, TestPayloads.Initial(new { iteminformation = "password" }),
+            cli, Substitute.For<IKeyboardTyper>());
+
+        connection.ClearReceivedCalls();
+        return (action, cli, connection);
+    }
+
+    [Fact]
+    public void Typing_in_the_search_box_does_not_list_the_vault()
+    {
+        // Every keystroke arrives as a settings change. Listing here meant a Bitwarden CLI
+        // process per character.
+        var (action, cli, _) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "gi" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "git" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "gith" }));
+
+        cli.DidNotReceive().Run(Arg.Any<string[]>());
+    }
+
+    [Fact]
+    public void Typing_in_the_search_box_does_not_echo_settings_back()
+    {
+        // Saving here came back as didReceiveSettings and rewrote the box mid-typing,
+        // which is what made characters jump and disappear.
+        var (action, _, connection) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "gith" }));
+
+        connection.DidNotReceive().SetSettingsAsync(Arg.Any<Newtonsoft.Json.Linq.JObject>());
+    }
+
+    [Fact]
+    public void Pressing_load_lists_the_vault_and_sends_the_result_back()
+    {
+        var (action, cli, connection) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "", loadtoken = "1700000000-abc" }));
+
+        cli.Received(1).Run("list", "items");
+        connection.Received(1).SetSettingsAsync(Arg.Any<Newtonsoft.Json.Linq.JObject>());
+    }
+
+    [Fact]
+    public void Typing_after_a_load_still_does_not_list_the_vault_again()
+    {
+        // The token stays in the settings once stamped, so it must only count as a request
+        // the first time it is seen.
+        var (action, cli, _) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "", loadtoken = "1700000000-abc" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "g", loadtoken = "1700000000-abc" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "gi", loadtoken = "1700000000-abc" }));
+
+        cli.Received(1).Run("list", "items");
+    }
+
+    [Fact]
+    public void Pressing_load_again_lists_the_vault_again()
+    {
+        var (action, cli, _) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { loadtoken = "1700000000-abc" }));
+        action.ReceivedSettings(TestPayloads.Received(new { loadtoken = "1700000009-xyz" }));
+
+        cli.Received(2).Run("list", "items");
+    }
+
+    [Fact]
+    public void The_list_loaded_once_still_resolves_a_selection_typed_later()
+    {
+        // Filtering moved into the property inspector, so the list fetched by Load has to
+        // stay usable for every later keystroke without another CLI call.
+        var (action, cli, _) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { loadtoken = "1700000000-abc" }));
+        cli.ClearReceivedCalls();
+
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "GitHub (octocat)" }));
+
+        Assert.Equal("8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f", action.ResolveItemQuery());
+        cli.DidNotReceive().Run(Arg.Any<string[]>());
+    }
+
     [Fact]
     public void An_action_dropped_with_no_settings_persists_its_defaults()
     {

@@ -13,13 +13,47 @@ if (typeof loadConfiguration === 'function') {
     var sdtoolsLoadConfiguration = loadConfiguration;
 
     loadConfiguration = function (payload) {
+        var input = document.getElementById('itemname');
+
+        // loadConfiguration assigns straight to element values. When it runs while the
+        // search box has focus - a settings echo arriving mid-keystroke - it overwrites
+        // what is being typed and drops the caret to the end. Put the box back exactly as
+        // the typist left it.
+        var typing = !!input && document.activeElement === input;
+        var typedValue = typing ? input.value : null;
+        var caretStart = typing ? input.selectionStart : 0;
+        var caretEnd = typing ? input.selectionEnd : 0;
+
         try {
             sdtoolsLoadConfiguration(payload);
         } finally {
+            if (typing) {
+                input.value = typedValue;
+                try {
+                    input.setSelectionRange(caretStart, caretEnd);
+                } catch (err) {
+                    // Some input types refuse a selection range; the value still stands.
+                }
+            }
+
             // Runs even if the framework choked on a key, so the picker still fills.
             setItemCandidates(payload ? payload.items : null);
         }
     };
+}
+
+/**
+ * Asks the plugin to fetch the vault. The list is loaded once and filtered here from then
+ * on, so typing never reaches the Bitwarden CLI.
+ */
+function requestItemLoad() {
+    var token = document.getElementById('loadtoken');
+
+    if (token) {
+        token.value = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
+    }
+
+    setSettings();
 }
 
 document.addEventListener('DOMContentLoaded', function () {

@@ -80,8 +80,12 @@
     <div class="sdpi-wrapper">
         <div class="sdpi-item" id="dvLoadItems">
             <div class="sdpi-item-label">Load Items</div>
-            <button class="sdpi-item-value max20" onclick="setSettings()">Load</button>
-            <p>Load all available Items (Unlock must be performed first)</p>
+            <button class="sdpi-item-value max20" onclick="requestItemLoad()">Load</button>
+            <!-- Stamped by the Load button so the plugin can tell a deliberate reload from
+                 an ordinary settings change. Never shown. -->
+            <input type="hidden" class="sdProperty" id="loadtoken">
+            <p>Load all available Items once (Unlock must be performed first), then type to
+               search them.</p>
         </div>
         <div class="sdpi-item" id="dvSelectedItem">
             <div class="sdpi-item-label">Selected Item</div>

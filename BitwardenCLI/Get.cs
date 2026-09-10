@@ -33,6 +33,13 @@ namespace BitwardenStreamdeckPlugin
 
             [JsonProperty(PropertyName = "itemname")]
             public string ItemName { get; set; }
+
+            /// <summary>
+            /// Stamped with a fresh value by the Load button. Its only purpose is to tell a
+            /// deliberate reload apart from an ordinary settings change such as typing.
+            /// </summary>
+            [JsonProperty(PropertyName = "loadtoken")]
+            public string LoadToken { get; set; }
         }
 
         #region Private Members
@@ -40,6 +47,7 @@ namespace BitwardenStreamdeckPlugin
         private readonly PluginSettings settings;
         private readonly IBwCli cli;
         private readonly IKeyboardTyper typer;
+        private string handledLoadToken;
 
         #endregion
 
@@ -222,9 +230,37 @@ namespace BitwardenStreamdeckPlugin
         public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
             Tools.AutoPopulateSettings(settings, payload.Settings);
+
+            // Every keystroke in the search box arrives here. Reloading the vault each time
+            // ran a Bitwarden CLI process per character, and saving afterwards echoed the
+            // settings back to the property inspector, which rewrote the box mid-typing and
+            // made characters jump and disappear. The list is fetched once, when the Load
+            // button asks for it, and filtered in the inspector from then on.
+            if (!ShouldReloadItems())
+            {
+                return;
+            }
+
             LoadItems().GetAwaiter().GetResult();
 
+            // The item list is new information the inspector does not have, so this is the
+            // one case worth sending back.
             SaveSettings();
+        }
+
+        /// <summary>
+        /// True only when the Load button has been pressed since the last reload. The button
+        /// stamps a fresh token into the settings; typing leaves it untouched.
+        /// </summary>
+        internal bool ShouldReloadItems()
+        {
+            if (string.IsNullOrEmpty(settings.LoadToken) || settings.LoadToken == handledLoadToken)
+            {
+                return false;
+            }
+
+            handledLoadToken = settings.LoadToken;
+            return true;
         }
 
         internal async Task LoadItems()
