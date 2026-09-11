@@ -198,9 +198,10 @@ build under Wine, so a native Linux build is not strictly required.
 
 [MIT](LICENSE). The bundled copy of [Awesomplete](https://projects.verou.me/awesomplete/)
 is MIT licensed too and keeps its own notice in
-`BitwardenCLI/PropertyInspector/awesomplete.min.js`. The action icons are
-[Font Awesome Free](https://fontawesome.com) icons (lock, lock-open, key, dice), used
-under [CC BY 4.0](https://fontawesome.com/license/free).
+`BitwardenCLI/PropertyInspector/awesomplete.min.js`.
+
+Icons used in this application are provided by Font Awesome (https://fontawesome.com),
+licensed under the Font Awesome Free License.
 
 This is an unofficial plugin and is not affiliated with or endorsed by Bitwarden or
 Elgato.
