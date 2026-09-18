@@ -9,6 +9,7 @@ This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow 
 | Lock | Locks the vault | - |
 | Get Item Information | Types a stored username, password or TOTP at the cursor | yes |
 | Generate Password | Generates a password or passphrase and types it at the cursor | no |
+| Sync Vault | Pulls the latest vault data down from the server | yes |
 
 ## What has changed
 
@@ -21,6 +22,9 @@ The first release since 2023, and a large one. Everything below is new since 1.0
 - **Generate Password action.** Passwords or passphrases with the same options as the
   Bitwarden generator, typed at the cursor, copied to the clipboard, or both. Works on a
   locked vault.
+- **Sync Vault action.** Pulls changes made on another device down into the CLI's local
+  copy, so the item picker and the Get action see them. Optionally puts the time of the
+  last sync on the key.
 - **Searchable item picker.** Load your vault once, then type to search it. Entries are
   labelled with their username so several logins for the same site can be told apart, and
   a clear button resets the selection.
@@ -173,6 +177,21 @@ so you can never end up with a weaker password than the one you configured.
 
 No settings. Pressing the key locks the vault; the next Get press will fail until you
 unlock again.
+
+### Sync Vault
+
+The Bitwarden CLI works from its own local copy of the vault and only refreshes it when
+asked, so an entry added on your phone - or a password changed in the web vault - stays
+invisible to the item picker and the Get action until a sync has run. Pressing the key
+runs `bw sync`, which needs the vault unlocked.
+
+| Setting | What it does |
+| --- | --- |
+| Full re-download | Throws the local copy away and fetches the whole vault again (`bw sync --force`) instead of only what changed. Slower, and rarely needed |
+| Show last sync time on the key | After a successful sync, puts the local time of day of the last sync (`bw sync --last`) on the key as its title |
+
+Press it after adding entries elsewhere, then press **Load** in a Get action's settings to
+pick the new entries up.
 
 ## Platform support
 

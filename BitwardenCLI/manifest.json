@@ -59,8 +59,22 @@
       "Tooltip": "Generate a password or passphrase and type it at the cursor",
       "UUID": "com.thejoeiaut.bitwardengenerate",
       "PropertyInspectorPath": "PropertyInspector/Generate.html"
+    },
+    {
+      "Icon": "Images/sync",
+      "Name": "Sync Vault",
+      "States": [
+        {
+          "Image": "Images/sync",
+          "TitleAlignment": "middle",
+          "FontSize": 12
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Pull the latest vault data down from the server",
+      "UUID": "com.thejoeiaut.bitwardensync",
+      "PropertyInspectorPath": "PropertyInspector/Sync.html"
     }
-
   ],
   "Author": "TheJoeIaut",
   "Name": "Bitwarden Tools",
