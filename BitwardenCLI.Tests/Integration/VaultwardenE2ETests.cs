@@ -255,4 +255,32 @@ public class VaultwardenE2ETests(VaultwardenFixture fixture)
             await fixture.Unlock();
         }
     }
+
+    [SkippableFact]
+    public async Task A_real_sync_runs_and_leaves_a_readable_timestamp()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        BwCli cli = Cli();
+
+        await cli.Run(Sync.BuildSyncArguments(Sync.PluginSettings.CreateDefaultSettings()));
+
+        // The shape of 'bw sync --last' output is the one thing the action cannot check
+        // for itself; a recorded fixture would only prove the fixture still parses.
+        string title = Sync.FormatLastSync(await cli.Run("sync", "--last"));
+
+        Assert.Matches(@"^\d{2}:\d{2}$", title);
+    }
+
+    [SkippableFact]
+    public async Task A_forced_sync_is_accepted_by_the_real_cli()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        var settings = new Sync.PluginSettings { Force = true };
+
+        // Only that the flag exists and is spelled the way the action spells it: a
+        // rejected option would fail the whole press for no visible reason.
+        await Cli().Run(Sync.BuildSyncArguments(settings));
+    }
 }

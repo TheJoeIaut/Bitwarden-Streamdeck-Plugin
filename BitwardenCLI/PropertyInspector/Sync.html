@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
+    <meta name=apple-mobile-web-app-capable content=yes>
+    <meta name=apple-mobile-web-app-status-bar-style content=black>
+    <title>Bitwarden Sync Settings</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
+    <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
+</head>
+<body>
+    <div class="sdpi-wrapper">
+
+        <div type="checkbox" class="sdpi-item">
+            <div class="sdpi-item-label">Options</div>
+            <div class="sdpi-item-value">
+                <div class="sdpi-item-child">
+                    <input id="force" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="force" class="sdpi-item-label"><span></span>Full re-download</label>
+                </div>
+                <div class="sdpi-item-child">
+                    <input id="showlastsync" type="checkbox" class="sdProperty sdCheckbox" value="" oninput="setSettings()">
+                    <label for="showlastsync" class="sdpi-item-label"><span></span>Show last sync time on the key</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="sdpi-item">
+            <details class="message">
+                <summary>This action needs the vault unlocked. <b>Full re-download</b>
+                    throws the local copy away and fetches the whole vault again instead of
+                    only what changed - slower, and rarely needed.</summary>
+            </details>
+        </div>
+
+    </div>
+</body>
+</html>
