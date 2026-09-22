@@ -291,7 +291,7 @@ public class GetActionTests
         await cli.Received(2).Run("get", "item", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
         // Looked up once, then saved, so the second press costs nothing.
         await cli.Received(1).Run("list", "items");
-        connection.Received(1).SetSettingsAsync(
+        await connection.Received(1).SetSettingsAsync(
             Arg.Is<Newtonsoft.Json.Linq.JObject>(
                 saved => saved.Value<string>("itemid") == "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"));
     }
