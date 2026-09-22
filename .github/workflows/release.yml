@@ -1,0 +1,112 @@
+name: Release
+
+# Packaging a release by hand means a self-contained publish, a run through Elgato's
+# packer and an upload, with the version living in two files that have to agree with
+# the tag. Pushing a tag does all of it here instead.
+#
+# The release is left as a draft: the notes come from the README and usually want a
+# read before anyone outside sees them.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Package and draft the release
+    # The shipped package is Windows only, and this is the runner the win-x64 build
+    # already uses in CI.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # A tag that disagrees with the manifest ships a package Stream Deck either
+      # refuses as an update or installs under the wrong version. Cheaper to catch
+      # here than after the release is out.
+      - name: Check the tag matches the plugin version
+        id: version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          manifest=$(jq -r '.Version' BitwardenCLI/manifest.json)
+          csproj=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' BitwardenCLI/BitwardenStreamdeckPlugin.csproj)
+
+          # The manifest carries a fourth, build field that the tag does not.
+          if [[ ! "$manifest" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::manifest.json Version '$manifest' is not four dot separated numbers"
+            exit 1
+          fi
+
+          disagrees=
+          [[ "${manifest%.*}" == "$tag" ]] || disagrees="manifest.json says $manifest"
+          [[ "$csproj" == "$tag" ]] || disagrees="${disagrees:+$disagrees, }csproj says $csproj"
+
+          if [[ -n "$disagrees" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME expects version $tag, but $disagrees"
+            exit 1
+          fi
+
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Self-contained, so nobody needs a .NET install. A plain build would carry every
+      # platform's SkiaSharp natives and come to roughly 180 MB - see BUILDING.md.
+      - name: Publish self-contained
+        run: >
+          dotnet publish BitwardenCLI/BitwardenStreamdeckPlugin.csproj
+          -c Release -r win-x64 --self-contained true
+          -o out/com.thejoeiaut.bitwarden.sdPlugin
+
+      # Elgato's own packer, which is what turns a .sdPlugin folder into the single file
+      # people double-click. It validates the manifest on the way through, so a plugin
+      # the Marketplace would reject fails here instead.
+      - name: Pack the .streamDeckPlugin
+        shell: bash
+        run: >
+          npx --yes --package=@elgato/cli@1
+          streamdeck pack out/com.thejoeiaut.bitwarden.sdPlugin --output dist
+
+      # The changelog is already written in the README; taking the notes from there is
+      # easier than keeping two copies of it in step.
+      - name: Take the release notes from the README
+        shell: bash
+        run: |
+          # Any heading ends the section: the next version below it, or - for the oldest
+          # entry in the list - whatever section follows the changelog.
+          awk -v want="### ${{ steps.version.outputs.version }}" '
+            $0 == want { found = 1; next }
+            found && /^#+ / { exit }
+            found { print }
+          ' README.md | awk 'NF { started = 1 } started' > notes.md
+
+          if [[ ! -s notes.md ]]; then
+            echo "::error::README.md has no '### ${{ steps.version.outputs.version }}' section under 'What has changed'"
+            exit 1
+          fi
+
+          cat >> notes.md <<'EOF'
+
+          See the [README](https://github.com/TheJoeIaut/Bitwarden-Streamdeck-Plugin#readme) for installation and usage.
+
+          Icons used in this application are provided by Font Awesome (https://fontawesome.com), licensed under the Font Awesome Free License.
+          EOF
+
+      - name: Draft the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          --draft
+          --title "${{ steps.version.outputs.version }}"
+          --notes-file notes.md
+          dist/*.streamDeckPlugin

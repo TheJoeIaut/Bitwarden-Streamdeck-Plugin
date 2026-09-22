@@ -49,6 +49,30 @@ otherwise the script asks you to quit it from its tray icon and waits (`-WaitMin
 10 by default). Pass `-SkipBuild` to install the last publish again, or `-NoRelaunch` to
 leave Stream Deck closed.
 
+## Releasing
+
+Pushing a `v*` tag runs [the release workflow](.github/workflows/release.yml): it publishes
+a self-contained win-x64 build, packs it into a `.streamDeckPlugin` with Elgato's own
+packer, and opens a **draft** release with the package attached. Nothing is public until
+you press Publish.
+
+Two things have to be in place first, and the workflow stops rather than releasing if
+either is missing:
+
+1. The version, in **both** `BitwardenCLI/manifest.json` (`Version`, four numbers) and
+   `BitwardenCLI/BitwardenStreamdeckPlugin.csproj` (`<Version>`, three). The tag has to
+   agree with them - `v2.0.1` wants `2.0.1.0` and `2.0.1`.
+2. A `### <version>` section in the README's *What has changed*. The release notes are
+   taken from it.
+
+```bash
+git tag v2.0.1
+git push origin v2.0.1
+```
+
+Then read the draft and publish it. The Elgato Marketplace listing is a separate upload,
+through the Maker portal.
+
 ## See also
 
 - [TESTING.md](TESTING.md) - running the unit and integration suites
