@@ -6,8 +6,16 @@
  * The input's id matches the "itemname" setting, so sdtools.common.js restores and saves it
  * with no help from here. What it cannot do is fill a suggestion list, so loadConfiguration
  * is wrapped to do that with the item list the payload already carries.
+ *
+ * Saving replaces the whole settings object with what the sdProperty fields hold, so the
+ * item list - which has no field - is dropped as soon as anything is typed. The label left
+ * in the search box means nothing without it, which is why the picked entry's id is written
+ * into a hidden field of its own as it is picked.
  */
 var itemPicker = null;
+
+/** Label -> vault id, rebuilt whenever a loaded item list arrives. Empty until then. */
+var itemIdsByLabel = {};
 
 if (typeof loadConfiguration === 'function') {
     var sdtoolsLoadConfiguration = loadConfiguration;
@@ -54,6 +62,14 @@ function clearItemSelection() {
     }
 
     input.value = '';
+
+    // Explicitly clearing the selection clears the id with it, list loaded or not.
+    var storedId = document.getElementById('itemid');
+
+    if (storedId) {
+        storedId.value = '';
+    }
+
     setSettings();
 
     input.focus();
@@ -111,8 +127,38 @@ function createItemPicker() {
 
     // Picking a suggestion does not raise 'input', so save explicitly.
     input.addEventListener('awesomplete-selectcomplete', function () {
-        setSettings();
+        itemNameChanged();
     });
+}
+
+/**
+ * Records which entry the search box now names, then saves. Called for both typing and
+ * picking a suggestion.
+ */
+function itemNameChanged() {
+    rememberSelectedItemId();
+    setSettings();
+}
+
+/**
+ * Puts the id of the entry the search box names into the hidden field, so the plugin still
+ * knows which entry is meant once the item list is gone.
+ */
+function rememberSelectedItemId() {
+    var input = document.getElementById('itemname');
+    var storedId = document.getElementById('itemid');
+
+    if (!input || !storedId) {
+        return;
+    }
+
+    // With no list loaded there is nothing to resolve a label against, and blanking the
+    // field would throw away an id an earlier session had already worked out.
+    if (!Object.keys(itemIdsByLabel).length) {
+        return;
+    }
+
+    storedId.value = itemIdsByLabel[input.value.trim()] || '';
 }
 
 function setItemCandidates(items) {
@@ -124,17 +170,23 @@ function setItemCandidates(items) {
 
     var labels = [];
 
+    itemIdsByLabel = {};
+
     if (items && items.length) {
         for (var i = 0; i < items.length; i++) {
             var name = items[i] ? items[i].name : null;
             if (name) {
-                // The label already carries the username in parentheses; the plugin maps it
-                // back to the entry's id when the action runs.
+                // The label already carries the username in parentheses; the id beside it
+                // is what the action is given when the key is pressed.
                 labels.push(name);
+                itemIdsByLabel[name] = items[i].id;
             }
         }
     }
 
     itemPicker._list = labels;
     itemPicker.list = labels;
+
+    // A list arriving is the first chance to say what a selection made earlier means.
+    rememberSelectedItemId();
 }

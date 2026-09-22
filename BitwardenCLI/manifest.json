@@ -82,7 +82,7 @@
   "Icon": "Images/icon",
   "URL": "https://github.com/TheJoeIaut/Bitwarden-Streamdeck-Plugin",
   "UUID": "com.thejoeiaut.bitwarden",
-  "Version": "2.0.0.0",
+  "Version": "2.0.1.0",
   "CodePath": "com.thejoeiaut.bitwarden.exe",
   "Category": "Bitwarden Tools",
   "CategoryIcon": "Images/category",

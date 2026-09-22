@@ -136,10 +136,17 @@
             <div class="sdpi-item-label">Selected Item</div>
             <div class="picker-row">
                 <input class="sdProperty" id="itemname" type="text"
-                       placeholder="Type to search your vault..." autocomplete="off" oninput="setSettings()">
+                       placeholder="Type to search your vault..." autocomplete="off"
+                       oninput="itemNameChanged()">
                 <button class="picker-clear" id="clearitem" type="button" title="Clear"
                         onclick="clearItemSelection()">&#10005;</button>
             </div>
+            <!-- The picked entry's vault id. Saving here replaces the whole settings
+                 object with what these fields hold, so the loaded item list - which has no
+                 field - is dropped as soon as anything is typed, and with it the only way
+                 to turn a label back into an id. The id needs a field of its own to
+                 survive. Never shown. -->
+            <input type="hidden" class="sdProperty" id="itemid">
         </div>
         <div class="sdpi-item" id="dvSelectedInfo">
             <div class="sdpi-item-label">Selected Info</div>
