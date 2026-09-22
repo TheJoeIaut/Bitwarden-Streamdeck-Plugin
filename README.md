@@ -13,6 +13,19 @@ This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow 
 
 ## What has changed
 
+### 2.0.1
+
+**Fixed**
+
+- **Keys configured with the 2.0 item picker only worked while the vault list was loaded.**
+  The picker stored the label it shows - `GitHub (octocat)` - and looked the entry's id up
+  in the list fetched by **Load**. The property inspector drops that list from the action's
+  settings the moment anything is typed, so it was gone by the next Stream Deck start and
+  the key asked the CLI for an item literally named `GitHub (octocat)`, which matched
+  nothing. The entry's id is now stored beside its label and survives on its own. Keys
+  already configured this way repair themselves: the first press after updating looks the
+  label up once and remembers what it found.
+
 ### 2.0
 
 The first release since 2023, and a large one. Everything below is new since 1.0.

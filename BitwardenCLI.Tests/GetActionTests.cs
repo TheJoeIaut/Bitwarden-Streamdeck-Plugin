@@ -227,6 +227,8 @@ public class GetActionTests
         await action.GetItem();
 
         await cli.Received(1).Run("get", "item", "github");
+        // The search box is free text by design; a term is not worth a vault listing.
+        await cli.DidNotReceive().Run("list", "items");
     }
 
     [Fact]
@@ -242,6 +244,113 @@ public class GetActionTests
         await action.GetItem();
 
         await cli.Received(1).Run("get", "item", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
+    }
+
+    [Fact]
+    public async Task A_remembered_id_keeps_a_key_working_once_the_loaded_list_is_gone()
+    {
+        // The property inspector saves only the fields it has, so the item list is dropped
+        // from the settings as soon as anything is typed and is gone for good by the next
+        // Stream Deck start. The id stored beside the label is what survives.
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(Fixture("get-item.json"));
+
+        var action = new Get(Substitute.For<ISDConnection>(),
+            TestPayloads.Initial(new
+            {
+                iteminformation = "password",
+                itemname = "GitHub (octocat)",
+                itemid = "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"
+            }),
+            cli, Substitute.For<IKeyboardTyper>());
+
+        await action.GetItem();
+
+        await cli.Received(1).Run("get", "item", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
+        await cli.DidNotReceive().Run("list", "items");
+    }
+
+    [Fact]
+    public async Task A_key_left_with_only_a_label_looks_it_up_once_and_remembers_the_id()
+    {
+        // 2.0 stored the label alone, so keys configured with it stopped working the moment
+        // the list was dropped: the CLI was asked for an item called "GitHub (octocat)".
+        ISDConnection connection = Substitute.For<ISDConnection>();
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run("list", "items").Returns(Fixture("list-items.json"));
+        cli.Run("get", "item", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f").Returns(Fixture("get-item.json"));
+
+        var action = new Get(connection,
+            TestPayloads.Initial(new { iteminformation = "password", itemname = "GitHub (octocat)" }),
+            cli, Substitute.For<IKeyboardTyper>());
+        connection.ClearReceivedCalls();
+
+        await action.GetItem();
+        await action.GetItem();
+
+        await cli.Received(2).Run("get", "item", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f");
+        // Looked up once, then saved, so the second press costs nothing.
+        await cli.Received(1).Run("list", "items");
+        connection.Received(1).SetSettingsAsync(
+            Arg.Is<Newtonsoft.Json.Linq.JObject>(
+                saved => saved.Value<string>("itemid") == "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"));
+    }
+
+    [Fact]
+    public async Task A_totp_key_left_with_only_a_label_recovers_the_same_way()
+    {
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run("list", "items").Returns(Fixture("list-items.json"));
+        cli.Run("get", "totp", "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f").Returns("123456");
+
+        var action = new Get(Substitute.For<ISDConnection>(),
+            TestPayloads.Initial(new { iteminformation = "totp", itemname = "GitHub (octocat)" }),
+            cli, Substitute.For<IKeyboardTyper>());
+
+        Assert.Equal("123456", await action.GetTotpCode());
+    }
+
+    [Fact]
+    public async Task A_typed_search_term_is_not_worth_listing_the_vault_for()
+    {
+        // Nothing to recover here - a plain term is exactly what the CLI's own search
+        // wants - so it must not cost a vault listing on every press.
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(Fixture("get-item.json"));
+
+        var action = new Get(Substitute.For<ISDConnection>(),
+            TestPayloads.Initial(new { iteminformation = "password", itemname = "github" }),
+            cli, Substitute.For<IKeyboardTyper>());
+
+        await action.GetItem();
+
+        await cli.Received(1).Run("get", "item", "github");
+        await cli.DidNotReceive().Run("list", "items");
+    }
+
+    [Fact]
+    public async Task A_loaded_list_beats_a_remembered_id_from_an_earlier_selection()
+    {
+        IBwCli cli = Substitute.For<IBwCli>();
+        cli.Run(Arg.Any<string[]>()).Returns(Fixture("get-item.json"));
+
+        var action = new Get(Substitute.For<ISDConnection>(),
+            TestPayloads.Initial(new
+            {
+                iteminformation = "password",
+                itemname = "acme.com (bob)",
+                itemid = "11111111-1111-4111-8111-111111111111",
+                items = new[]
+                {
+                    new { name = "acme.com (alice)", id = "11111111-1111-4111-8111-111111111111" },
+                    new { name = "acme.com (bob)", id = "22222222-2222-4222-8222-222222222222" }
+                }
+            }),
+            cli, Substitute.For<IKeyboardTyper>());
+
+        await action.GetItem();
+
+        await cli.Received(1).Run("get", "item", "22222222-2222-4222-8222-222222222222");
     }
 
     [Fact]
@@ -379,6 +488,61 @@ public class GetActionTests
 
         Assert.Equal("8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f", action.ResolveItemQuery());
         cli.DidNotReceive().Run(Arg.Any<string[]>());
+    }
+
+    [Fact]
+    public void Picking_an_entry_records_its_id_in_the_settings()
+    {
+        var (action, _, connection) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { loadtoken = "1700000000-abc" }));
+        connection.ClearReceivedCalls();
+
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "GitHub (octocat)" }));
+
+        connection.Received(1).SetSettingsAsync(
+            Arg.Is<Newtonsoft.Json.Linq.JObject>(
+                saved => saved.Value<string>("itemid") == "8f1b3c2e-4d5a-4b6c-9e7f-1a2b3c4d5e6f"));
+    }
+
+    [Fact]
+    public void Changing_the_selection_replaces_the_remembered_id()
+    {
+        var (action, _, _) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { loadtoken = "1700000000-abc" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "GitHub (octocat)" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "Example Mail (user@example.com)" }));
+
+        Assert.Equal("1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f", action.ResolveItemQuery());
+    }
+
+    [Fact]
+    public void Typing_free_text_drops_the_remembered_id_instead_of_keeping_the_old_entry()
+    {
+        var (action, _, _) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { loadtoken = "1700000000-abc" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "GitHub (octocat)" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "Exam" }));
+
+        Assert.Equal("Exam", action.ResolveItemQuery());
+    }
+
+    [Fact]
+    public void Typing_towards_an_entry_does_not_echo_settings_back()
+    {
+        // Remembering the id must not reintroduce the per-keystroke echo that rewrote the
+        // search box mid-typing: only actually reaching an entry is worth saving.
+        var (action, _, connection) = ForSettings();
+
+        action.ReceivedSettings(TestPayloads.Received(new { loadtoken = "1700000000-abc" }));
+        connection.ClearReceivedCalls();
+
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "Git" }));
+        action.ReceivedSettings(TestPayloads.Received(new { itemname = "GitH" }));
+
+        connection.DidNotReceive().SetSettingsAsync(Arg.Any<Newtonsoft.Json.Linq.JObject>());
     }
 
     [Fact]

@@ -131,6 +131,29 @@ public class VaultwardenE2ETests(VaultwardenFixture fixture)
     }
 
     [SkippableFact]
+    public async Task A_label_left_without_its_list_still_fetches_the_right_entry()
+    {
+        Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);
+
+        // What a key configured with 2.0's picker looks like after the property inspector
+        // has saved: the label survives, the list it was resolved against does not. Asking
+        // the CLI for an item called "Example (user)" matches nothing, so the action has to
+        // recover the id itself.
+        List<ItemListDto> items = Get.ParseItemList(await Cli().Run("list", "items"));
+        string label = items.Single(i => i.ItemName.StartsWith(VaultwardenFixture.ItemName)).ItemName;
+
+        await Assert.ThrowsAsync<BwCliException>(() => Cli().Run("get", "item", label));
+
+        var action = new Get(Substitute.For<ISDConnection>(),
+            TestPayloads.Initial(new { iteminformation = "username", itemname = label }),
+            Cli(), Substitute.For<IKeyboardTyper>());
+
+        Item fetched = await action.GetItem();
+
+        Assert.Equal(VaultwardenFixture.ItemUsername, fetched.UserName);
+    }
+
+    [SkippableFact]
     public async Task The_stored_picker_list_carries_no_credentials()
     {
         Skip.If(fixture.SkipReason != null, fixture.SkipReason ?? string.Empty);

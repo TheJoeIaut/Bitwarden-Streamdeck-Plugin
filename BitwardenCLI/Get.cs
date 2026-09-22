@@ -19,6 +19,7 @@ namespace BitwardenStreamdeckPlugin
                 PluginSettings instance = new PluginSettings
                 {
                     ItemName = String.Empty,
+                    ItemId = String.Empty,
                     SelectedItemInformation = String.Empty
                 };
                 return instance;
@@ -33,6 +34,14 @@ namespace BitwardenStreamdeckPlugin
 
             [JsonProperty(PropertyName = "itemname")]
             public string ItemName { get; set; }
+
+            /// <summary>
+            /// The vault id of the selected entry, kept beside its label because the label
+            /// on its own cannot be resolved once <see cref="Items"/> is gone - which it
+            /// always is by the next Stream Deck start. See <see cref="RememberSelectedItemId"/>.
+            /// </summary>
+            [JsonProperty(PropertyName = "itemid")]
+            public string ItemId { get; set; }
 
             /// <summary>
             /// Stamped with a fresh value by the Load button. Its only purpose is to tell a
@@ -129,7 +138,7 @@ namespace BitwardenStreamdeckPlugin
             Logger.Instance.LogMessage(TracingLevel.INFO,
                 $"Getting {settings.SelectedItemInformation} of item {settings.ItemName}");
 
-            string output = await cli.Run("get", "item", ResolveItemQuery());
+            string output = await cli.Run("get", "item", await ResolveItemQueryAsync());
 
             return ParseItem(output);
         }
@@ -140,9 +149,10 @@ namespace BitwardenStreamdeckPlugin
         /// The picker stores whatever is in its search box. When that matches one of the
         /// loaded entries, its id is used, which is exact and immune to duplicate names -
         /// and necessary, because the label carries the username in parentheses and the CLI
-        /// would never find that. Anything else is passed through as a search term, which
-        /// also covers a settings file written before the picker changed, where the stored
-        /// value is already an id.
+        /// would never find that. Failing that the id remembered when the entry was picked
+        /// is used, which is what keeps a key working after the loaded list is gone.
+        /// Anything else is passed through as a search term, which also covers a settings
+        /// file written before the picker changed, where the stored value is already an id.
         /// </summary>
         internal string ResolveItemQuery()
         {
@@ -155,15 +165,109 @@ namespace BitwardenStreamdeckPlugin
 
             selection = selection.Trim();
 
-            ItemListDto match = settings.Items?.FirstOrDefault(
-                item => string.Equals(item.ItemName, selection, StringComparison.Ordinal));
+            ItemListDto match = FindLoadedItem(selection);
 
-            if (match != null && match.ItemId != Guid.Empty)
+            if (match != null)
             {
                 return match.ItemId.ToString();
             }
 
+            if (Guid.TryParse(settings.ItemId, out Guid remembered) && remembered != Guid.Empty)
+            {
+                return remembered.ToString();
+            }
+
             return selection;
+        }
+
+        /// <summary>
+        /// The same, but allowed to ask the CLI for the vault listing when the selection
+        /// cannot be resolved from the settings alone.
+        ///
+        /// A key configured with the picker stores a label - "GitHub (octocat)" - which
+        /// only means something next to the list it came from. Keys configured before the
+        /// id was stored alongside it therefore have nothing left to resolve against once
+        /// the list is dropped, and pressing them asked the CLI for an item named after a
+        /// label, which never matched. Listing the vault once puts that right, and the id
+        /// it yields is saved, so the next press costs nothing.
+        /// </summary>
+        internal async Task<string> ResolveItemQueryAsync()
+        {
+            string query = ResolveItemQuery();
+
+            // Already an id, a list is loaded and has had its say, or the box holds a plain
+            // search term the CLI can handle on its own: nothing to look up.
+            if (Guid.TryParse(query, out _)
+                || (settings.Items != null && settings.Items.Count > 0)
+                || !LooksLikePickerLabel(query))
+            {
+                return query;
+            }
+
+            await LoadItems();
+
+            if (RememberSelectedItemId())
+            {
+                SaveSettings();
+            }
+
+            return ResolveItemQuery();
+        }
+
+        /// <summary>
+        /// Whether the search box holds something only the picker would have put there:
+        /// an entry name with the username appended, as <see cref="ItemListDto.ApplyDisplayName"/>
+        /// writes it. Free text typed by hand is left to the CLI's own search rather than
+        /// being worth a vault listing.
+        /// </summary>
+        private static bool LooksLikePickerLabel(string selection)
+        {
+            return selection.EndsWith(")", StringComparison.Ordinal)
+                   && selection.IndexOf(" (", StringComparison.Ordinal) > 0;
+        }
+
+        /// <summary>
+        /// The loaded entry whose label is exactly what the search box holds, if there is
+        /// one with a usable id.
+        /// </summary>
+        private ItemListDto FindLoadedItem(string selection)
+        {
+            ItemListDto match = settings.Items?.FirstOrDefault(
+                item => string.Equals(item.ItemName, selection, StringComparison.Ordinal));
+
+            return match != null && match.ItemId != Guid.Empty ? match : null;
+        }
+
+        /// <summary>
+        /// Keeps the stored id in step with the search box, and reports whether it changed.
+        ///
+        /// The property inspector replaces the whole settings object every time it saves,
+        /// and it can only send back what it has a field for. The loaded item list has no
+        /// field, so it is dropped the moment anything is typed - and it is the list that
+        /// turns the picker's label back into an id. The id gets a field of its own, so it
+        /// survives; this is what fills it in.
+        ///
+        /// Only a loaded list can say what a label means, so with no list this leaves the
+        /// stored id alone rather than clearing a perfectly good one.
+        /// </summary>
+        internal bool RememberSelectedItemId()
+        {
+            if (settings.Items == null || settings.Items.Count == 0)
+            {
+                return false;
+            }
+
+            string selection = settings.ItemName?.Trim();
+            ItemListDto match = string.IsNullOrEmpty(selection) ? null : FindLoadedItem(selection);
+            string resolved = match == null ? string.Empty : match.ItemId.ToString();
+
+            if (string.Equals(resolved, settings.ItemId ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            settings.ItemId = resolved;
+            return true;
         }
 
         /// <summary>
@@ -193,7 +297,7 @@ namespace BitwardenStreamdeckPlugin
         /// </summary>
         internal async Task<string> GetTotpCode()
         {
-            string code = (await cli.Run("get", "totp", ResolveItemQuery())).Trim();
+            string code = (await cli.Run("get", "totp", await ResolveItemQueryAsync())).Trim();
 
             if (string.IsNullOrEmpty(code))
             {
@@ -236,16 +340,22 @@ namespace BitwardenStreamdeckPlugin
             // settings back to the property inspector, which rewrote the box mid-typing and
             // made characters jump and disappear. The list is fetched once, when the Load
             // button asks for it, and filtered in the inspector from then on.
-            if (!ShouldReloadItems())
+            bool reloading = ShouldReloadItems();
+
+            if (reloading)
             {
-                return;
+                LoadItems().GetAwaiter().GetResult();
             }
 
-            LoadItems().GetAwaiter().GetResult();
+            // Worth sending back in two cases only: the item list is new information the
+            // inspector does not have, and a freshly resolved id has to reach the settings
+            // before the inspector's next save. Neither happens while merely typing.
+            bool idChanged = RememberSelectedItemId();
 
-            // The item list is new information the inspector does not have, so this is the
-            // one case worth sending back.
-            SaveSettings();
+            if (reloading || idChanged)
+            {
+                SaveSettings();
+            }
         }
 
         /// <summary>
