@@ -15,6 +15,12 @@ This unofficial Plugin allows interaction with the Bitwarden CLI. Actions allow 
 
 ### 2.0.1
 
+**New**
+
+- **Sync Vault action.** Pulls changes made on another device down into the CLI's local
+  copy, so the item picker and the Get action see them. Optionally puts the time of the
+  last sync on the key.
+
 **Fixed**
 
 - **Keys configured with the 2.0 item picker only worked while the vault list was loaded.**
@@ -35,9 +41,6 @@ The first release since 2023, and a large one. Everything below is new since 1.0
 - **Generate Password action.** Passwords or passphrases with the same options as the
   Bitwarden generator, typed at the cursor, copied to the clipboard, or both. Works on a
   locked vault.
-- **Sync Vault action.** Pulls changes made on another device down into the CLI's local
-  copy, so the item picker and the Get action see them. Optionally puts the time of the
-  last sync on the key.
 - **Searchable item picker.** Load your vault once, then type to search it. Entries are
   labelled with their username so several logins for the same site can be told apart, and
   a clear button resets the selection.
